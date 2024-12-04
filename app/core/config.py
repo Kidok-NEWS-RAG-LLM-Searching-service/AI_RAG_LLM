@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic.v1 import BaseSettings
 
+
 class Settings(BaseSettings):
 
     # Static Variable
@@ -12,14 +13,13 @@ class Settings(BaseSettings):
     # Dynamic Variable
     env: str
     debug: bool = True
-    spring_api_server_origin: str
+    # spring_api_server_origin: str
     openai_api_key: str
     pinecone_api_key: str
     pinecone_index_name: str
     pinecone_namespace: str
     # pinecone_environment: str
     upstage_api_key: str
-
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs, _env_file=Path(f".env.{kwargs.get('env', 'dev')}"))
