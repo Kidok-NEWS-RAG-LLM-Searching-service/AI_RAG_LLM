@@ -1,14 +1,15 @@
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 
+from app.core.openai import OpenaiConfig
 from app.core.pinecone import PineconeConfig
-from upstaage import UpstageConfig
-from openai import OpenaiConfig
-from prompt import qa_prompt
 from datetime import datetime
 
+from app.core.prompt import qa_prompt
+from app.core.upstage import UpstageConfig
 
-class RagPipeline():
+
+class RagPipeline:
     pinecone_config = PineconeConfig()
     upstage_config = UpstageConfig()
     openai_config = OpenaiConfig()
@@ -35,10 +36,6 @@ class RagPipeline():
         self.result = self.get_llm_result(query)
         self.answer = self.get_answer(self.result)
 
-
-
-
-
     def __init_hybrid_retriever__(self):
         retreiver = self.pinecone_config.PineconeKiwiHybridRetriever()
         return retreiver
@@ -48,7 +45,7 @@ class RagPipeline():
         rag_chain = create_retrieval_chain(self.hybrid_retriever, question_answer_chain)
         return rag_chain
 
-    def get_llm_result(self, query: str)-> dict:
+    def get_llm_result(self, query: str) -> dict:
         result = self.rag_chain.invoke(
             {
                 "input": query,

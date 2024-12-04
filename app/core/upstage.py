@@ -1,6 +1,7 @@
 from AI_RAG_LLM.app.core.config import settings
 from langchain_upstage import UpstageEmbeddings
 
+
 class UpstageConfig:
     CONTENTS_EMBEDDING_MODEL = "solar-embedding-1-large-passage"
     QUERY_EMBEDDING_MODEL = "solar-embedding-1-large-query"

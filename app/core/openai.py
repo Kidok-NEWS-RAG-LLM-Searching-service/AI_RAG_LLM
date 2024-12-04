@@ -1,6 +1,7 @@
 from AI_RAG_LLM.app.core.config import settings
 from langchain_openai import ChatOpenAI
 
+
 class OpenaiConfig:
     MODEL_NAME = 'gpt-4o-mini-2024-07-18'
     MAX_TOKENS = 1024

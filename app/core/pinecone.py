@@ -24,7 +24,6 @@ class PineconeConfig:
         self.top_k: int = 10
         self.alpha: float = 0.5 # alpha=0.75로 설정한 경우, (0.75: Dense Embedding, 0.25: Sparse Embedding)
 
-
     def stopwords(self):
         # GitHub URL로부터 'korean_stopwords.txt' 파일을 읽어 한국어 불용어
         file_url = "https://raw.githubusercontent.com/teddylee777/langchain-teddynote/main/assets/korean_stopwords.txt"
@@ -60,8 +59,6 @@ class PineconeConfig:
                 f"'{self.namespace}'를 '{list(namespace_keys)}'에서 찾지 못했습니다."
             )
         return True
-
-
 
 
 class KiwiBM25Tokenizer:
