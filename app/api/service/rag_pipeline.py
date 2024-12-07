@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Any
+from typing import Any, List
 
 import pandas as pd
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -14,6 +14,7 @@ from app.api.service.retrievers.PineconeKiwiHybridRetriever import PineconeKiwiH
 from app.core.llm import AIModelManager
 from app.core.pinecone_index_initializer import PineconeIndexInitializer
 
+from typing import AsyncGenerator
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -89,12 +90,12 @@ class RagPipeline:
         return response
 
 
-    def get_documents(self, query: str, k = 5) -> list:
+    def get_documents(self, query: str, k = 5) -> List[Document]:
         docs = self.pinecone_retriever.invoke(query, k=k)
         return docs
 
     @staticmethod
-    def get_source(docs: list) -> list:
+    def get_source(docs: List[Document]) -> List[dict]:
         source_list = []
         for document in docs:
             meta = document.metadata
@@ -106,20 +107,22 @@ class RagPipeline:
                 }
             if new_item not in source_list:
                 source_list.append(new_item)
-        response = {
-            "sources": source_list
-        }
         return source_list
 
-    async def stream_query(self, query: str, docs: list):
-        async for event in self.question_answer_chain.astream(
-                {
-                    "input": query,
-                    'context': docs,
-                    "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
-                    "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
-                }
-        ):
-            print(event, end="", flush=True)
+    async def stream_query(self, query: str, docs: List[Document]) -> AsyncGenerator[str, None]:
+        try:
+            async for event in self.question_answer_chain.astream(
+                    {
+                        "input": query,
+                        'context': docs,
+                        "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
+                        "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
+                    }
+            ):
+                yield event  # 스트리밍 데이터 전송
+
+        except Exception as e:
+            yield f"Error: {str(e)}\n"
+
 
 rag_pipeline = RagPipeline()

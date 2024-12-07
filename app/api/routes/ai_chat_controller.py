@@ -8,6 +8,9 @@ from app.api.service.rag_pipeline import rag_pipeline
 
 router = APIRouter()
 
+from fastapi.responses import StreamingResponse
+from langchain_core.documents import Document
+from typing import List
 
 class QueryRequest(BaseModel):
     query: str
@@ -19,17 +22,15 @@ class QueryResponse(BaseModel):
 
 
 class SourceResponse(BaseModel):
-    docs: list
-    source: list
+    docs: List[Document]
+    sources: List[dict]
 
 
 class DocsRequest(BaseModel):
     query: str
-    docs: Any
+    docs: List[Document]
 
 
-class StreamResponse(BaseModel):
-    event: str
 
 
 @router.post("/query", response_model=QueryResponse)
@@ -45,11 +46,10 @@ def get_query_result(request: QueryRequest):
 def get_source(request: QueryRequest):
     try:
         docs = rag_pipeline.get_documents(request.query)
-        print('api_docs :', docs)
-        source = rag_pipeline.get_source(docs)
+        sources = rag_pipeline.get_source(docs)
         result = {
             'docs': docs,
-            'source': source
+            'sources': sources
         }
         return result
     except Exception as e:
@@ -57,12 +57,18 @@ def get_source(request: QueryRequest):
         # 에러 핸들링
         # raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/stream_result", response_model=StreamResponse)
+@router.post("/stream_result", response_class=StreamingResponse)
 async def get_stream_result(request: DocsRequest):
     try:
-        await rag_pipeline.stream_query(request.query, request.docs)
+        return StreamingResponse(
+            rag_pipeline.stream_query(request.query, request.docs),  # 스트리밍 함수
+            media_type="text/plain",  # 스트리밍 데이터의 Content-Type 설정
+        )
     except Exception as e:
-        # 에러 핸들링
         print(e)
+        return StreamingResponse(
+            (f"Error: {str(e)}\n" for _ in range(1)),  # 에러 메시지 스트리밍
+            media_type="text/plain",
+        )
 
 
