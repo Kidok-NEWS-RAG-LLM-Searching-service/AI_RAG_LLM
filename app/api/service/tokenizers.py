@@ -30,6 +30,11 @@ class KiwiBM25Tokenizer:
         except LookupError:
             nltk.download("punkt")
 
+    def __call__(self, text: str) -> List[str]:
+        """Make the tokenizer callable."""
+        tokens = self.__tokenize(self._tokenizer, text)
+        return [token for token in tokens if token not in self._stop_words and token not in self.punctuation]
+
     def __getstate__(self):
         state = self.__dict__.copy()
         del state["_tokenizer"]

@@ -28,25 +28,5 @@ class Settings(BaseSettings):
     def all_cors_origin(self) -> list[str]:
         return self.CLIENT_CORS_ORIGIN + self.CORS_ORIGIN
 
-    @property
-    def get_openai_api_key(self) -> str:
-        return self.openai_api_key
-
-    @property
-    def get_pinecone_api_key(self) -> str:
-        return self.pinecone_api_key
-
-    @property
-    def get_pinecone_index_name(self) -> str:
-        return self.pinecone_index_name
-
-    @property
-    def get_pinecone_namespace(self) -> str:
-        return self.pinecone_namespace
-
-    @property
-    def get_upstage_api_key(self) -> str:
-        return self.upstage_api_key
-
 
 settings = Settings()
