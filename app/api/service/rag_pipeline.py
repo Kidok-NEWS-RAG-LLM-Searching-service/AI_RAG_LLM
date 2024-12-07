@@ -1,16 +1,19 @@
 import os
 from datetime import datetime
+from typing import Any
 
 import pandas as pd
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.documents import Document
 
 from app.api.service.encoders.encoders import sparse_encoder
 from app.api.service.managers.stop_words_manager import StopwordsManager
 from app.api.service.retrievers.PineconeKiwiHybridRetriever import PineconeKiwiHybridRetriever
 from app.core.llm import AIModelManager
 from app.core.pinecone_index_initializer import PineconeIndexInitializer
+
 
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +27,8 @@ class RagPipeline:
     embeddings = ai_model_manager.embeddings
 
     sparse_encoder_path = os.path.join("./news_rag_llm/yong_contextual_sparse_encoder.pkl")
+
+    global_source_set = set()
 
     if not os.path.exists(sparse_encoder_path):
         print(f"{sparse_encoder_path} not found. Creating sparse encoder...")
@@ -83,5 +88,38 @@ class RagPipeline:
         }
         return response
 
+
+    def get_documents(self, query: str, k = 5) -> list:
+        docs = self.pinecone_retriever.invoke(query, k=k)
+        return docs
+
+    @staticmethod
+    def get_source(docs: list) -> list:
+        source_list = []
+        for document in docs:
+            meta = document.metadata
+            new_item = {
+                    "source": meta["source"],
+                    "title": meta["title"],
+                    "date": f"{meta['mod_date']} {meta['mod_timestamp']}",
+                    "image_url": meta["images_url"],
+                }
+            if new_item not in source_list:
+                source_list.append(new_item)
+        response = {
+            "sources": source_list
+        }
+        return source_list
+
+    async def stream_query(self, query: str, docs: list):
+        async for event in self.question_answer_chain.astream(
+                {
+                    "input": query,
+                    'context': docs,
+                    "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
+                    "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
+                }
+        ):
+            print(event, end="", flush=True)
 
 rag_pipeline = RagPipeline()
