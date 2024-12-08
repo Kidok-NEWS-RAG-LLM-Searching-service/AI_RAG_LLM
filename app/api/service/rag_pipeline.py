@@ -27,7 +27,7 @@ class RagPipeline:
     llm = ai_model_manager.llm
     embeddings = ai_model_manager.embeddings
 
-    sparse_encoder_path = os.path.join("./news_rag_llm/yong_contextual_sparse_encoder.pkl")
+    sparse_encoder_path = os.path.join("./app/news_rag_llm/yong_contextual_sparse_encoder.pkl")
 
     global_source_set = set()
 
@@ -45,7 +45,7 @@ class RagPipeline:
         print(f"Sparse encoder saved at: {saved_path}")
 
     pinecone_index_initializer = PineconeIndexInitializer(
-        sparse_encoder_path="./news_rag_llm/yong_contextual_sparse_encoder.pkl",
+        sparse_encoder_path="./app/news_rag_llm/yong_contextual_sparse_encoder.pkl",
         stopwords=stop_words_manager.fetch_stopwords(),  # 불용어 사전
         tokenizer="kiwi",
         embeddings=embeddings,
