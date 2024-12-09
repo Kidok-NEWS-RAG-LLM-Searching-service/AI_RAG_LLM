@@ -62,13 +62,13 @@ async def get_stream_result(request: DocsRequest):
     try:
         return StreamingResponse(
             rag_pipeline.stream_query(request.query, request.docs),  # 스트리밍 함수
-            media_type="text/event-stream",  # 스트리밍 데이터의 Content-Type 설정
+            media_type="text/plain",  # 스트리밍 데이터의 Content-Type 설정
         )
     except Exception as e:
         print(e)
         return StreamingResponse(
             (f"Error: {str(e)}\n" for _ in range(1)),  # 에러 메시지 스트리밍
-            media_type="text/event-stream",
+            media_type="text/plain",
         )
 
 
