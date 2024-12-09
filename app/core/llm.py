@@ -32,7 +32,8 @@ class AIModelManager:
             temperature=llm_temperature,
             max_tokens=llm_max_tokens,
             timeout=llm_time_out,
-            max_retries=llm_max_retries
+            max_retries=llm_max_retries,
+            streaming=True
         )
 
     @staticmethod

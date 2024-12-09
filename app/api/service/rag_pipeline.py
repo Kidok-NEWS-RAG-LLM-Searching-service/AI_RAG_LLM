@@ -119,7 +119,7 @@ class RagPipeline:
                         "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
                     }
             ):
-                yield event  # 스트리밍 데이터 전송
+                yield print(event, end="", flush=True)  # 스트리밍 데이터 전송
 
         except Exception as e:
             yield f"Error: {str(e)}\n"
