@@ -18,7 +18,7 @@ class PineconeKiwiHybridRetriever(BaseRetriever, BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __init__(self, embeddings: Embeddings, sparse_encoder: Any, index: Any, top_k: int = 10, alpha: float = 0.5,
+    def __init__(self, embeddings: Embeddings, sparse_encoder: Any, index: Any, top_k: int = 10, alpha: float = 1,
                  namespace: Optional[str] = None, pc: Any = None, *args: Any, **kwargs: Any):
         super().__init__(
             embeddings=embeddings,
@@ -124,7 +124,7 @@ class PineconeKiwiHybridRetriever(BaseRetriever, BaseModel):
     @staticmethod
     def _process_query_response(query_response: Dict[str, Any]) -> List[Document]:
         return [
-            Document(page_content=r.metadata["context"], metadata=r.metadata)
+            Document(page_content=r.metadata["content"], metadata=r.metadata)
             for r in query_response["matches"]
         ]
 
