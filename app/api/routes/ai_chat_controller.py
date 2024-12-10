@@ -1,16 +1,17 @@
 from http.client import HTTPException
-from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.api.service.rag_pipeline import rag_pipeline
 
-router = APIRouter()
-
 from fastapi.responses import StreamingResponse
 from langchain_core.documents import Document
 from typing import List
+
+
+router = APIRouter()
+
 
 class QueryRequest(BaseModel):
     query: str
@@ -29,8 +30,6 @@ class SourceResponse(BaseModel):
 class DocsRequest(BaseModel):
     query: str
     docs: List[Document]
-
-
 
 
 @router.post("/query", response_model=QueryResponse)
