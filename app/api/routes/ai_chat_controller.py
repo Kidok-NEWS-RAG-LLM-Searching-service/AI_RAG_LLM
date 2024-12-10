@@ -42,6 +42,7 @@ def get_query_result(request: QueryRequest):
         # 에러 핸들링
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/docs", response_model=SourceResponse)
 def get_source(request: QueryRequest):
     try:
@@ -57,18 +58,19 @@ def get_source(request: QueryRequest):
         # 에러 핸들링
         # raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/stream_result", response_class=StreamingResponse)
 async def get_stream_result(request: DocsRequest):
     try:
         return StreamingResponse(
-            rag_pipeline.stream_query(request.query, request.docs),  # 스트리밍 함수
-            media_type="text/plain",  # 스트리밍 데이터의 Content-Type 설정
+            rag_pipeline.stream_query(request.query, request.docs),
+            media_type="text/event-stream",
         )
     except Exception as e:
         print(e)
         return StreamingResponse(
-            (f"Error: {str(e)}\n" for _ in range(1)),  # 에러 메시지 스트리밍
-            media_type="text/plain",
+            (f"Error: {str(e)}\n" for _ in range(1)),
+            media_type="text/event-stream",
         )
 
 

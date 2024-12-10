@@ -1,3 +1,4 @@
+import asyncio
 import os
 from datetime import datetime
 from typing import Any, List
@@ -89,8 +90,7 @@ class RagPipeline:
         }
         return response
 
-
-    def get_documents(self, query: str, k = 5) -> List[Document]:
+    def get_documents(self, query: str, k=5) -> List[Document]:
         docs = self.pinecone_retriever.invoke(query, k=k)
         return docs
 
@@ -119,7 +119,7 @@ class RagPipeline:
                         "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
                     }
             ):
-                yield print(event, end="", flush=True)  # 스트리밍 데이터 전송
+                yield event
 
         except Exception as e:
             yield f"Error: {str(e)}\n"
