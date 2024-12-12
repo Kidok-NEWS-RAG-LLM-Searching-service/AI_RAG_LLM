@@ -7,8 +7,8 @@ class Settings(BaseSettings):
 
     # Static Variable
     API_V1_STR: str = "/api/v1"
-    CLIENT_CORS_ORIGIN: list[str] = ["http://localhost:3000", "http://localhost:5173"]
-    CORS_ORIGIN: list[str] = ["http://localhost:8000"]
+    CLIENT_CORS_ORIGIN: list[str] = ["https://kidokai.com", "http://localhost:5173"]
+    CORS_ORIGIN: list[str] = ["http://api.kidokai.com"]
 
     # Dynamic Variable
     env: str
