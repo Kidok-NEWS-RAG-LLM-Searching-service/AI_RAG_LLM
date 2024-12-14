@@ -13,13 +13,15 @@ class Settings(BaseSettings):
     # Dynamic Variable
     env: str
     debug: bool = True
-    # spring_api_server_origin: str
     openai_api_key: str
     pinecone_api_key: str
     pinecone_index_name: str
     pinecone_namespace: str
-    # pinecone_environment: str
     upstage_api_key: str
+    log_db_region_name: str
+    log_db_access_key_id: str
+    log_db_secret_access_key: str
+    ai_search_log_table: str
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs, _env_file=Path(f".env.{kwargs.get('env', 'dev')}"))
