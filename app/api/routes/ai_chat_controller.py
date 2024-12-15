@@ -1,5 +1,4 @@
 from http.client import HTTPException
-from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -35,8 +34,6 @@ class DocsRequest(BaseModel):
     docs: List[Document]
 
 
-
-
 @router.post("/query", response_model=QueryResponse)
 def get_query_result(request: QueryRequest):
     try:
@@ -45,6 +42,7 @@ def get_query_result(request: QueryRequest):
     except Exception as e:
         # 에러 핸들링
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/docs", response_model=SourceResponse)
 def get_source(request: QueryRequest):
@@ -60,6 +58,7 @@ def get_source(request: QueryRequest):
         print(e)
         # 에러 핸들링
         # raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/stream_result", response_class=StreamingResponse)
 async def get_stream_result(request: DocsRequest):

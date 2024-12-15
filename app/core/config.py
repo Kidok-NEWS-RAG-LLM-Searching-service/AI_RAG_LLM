@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     log_db_secret_access_key: str
     ai_search_log_table: str
 
+    mongo_db_name: str
+    mongo_db_url: str
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs, _env_file=Path(f".env.{kwargs.get('env', 'dev')}"))
 
