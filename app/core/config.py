@@ -18,10 +18,6 @@ class Settings(BaseSettings):
     pinecone_index_name: str
     pinecone_namespace: str
     upstage_api_key: str
-    log_db_region_name: str
-    log_db_access_key_id: str
-    log_db_secret_access_key: str
-    ai_search_log_table: str
 
     mongo_db_name: str
     mongo_db_url: str

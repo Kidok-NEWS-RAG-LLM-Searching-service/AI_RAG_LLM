@@ -13,7 +13,6 @@ class MongoDB:
     def connect(self):
         self.client = AsyncIOMotorClient(settings.mongo_db_url,tlsCAFile=certifi.where())
         self.db = self.client[settings.mongo_db_name]
-        print("DB 와 연결되었습니다.")
 
     def close(self):
         self.client.close()
