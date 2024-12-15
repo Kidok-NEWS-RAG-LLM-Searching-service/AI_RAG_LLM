@@ -9,6 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
 
 from app.api.service.encoders.encoders import sparse_encoder
+from app.api.service.logs.log import put_search_response_tracking
 from app.api.service.managers.stop_words_manager import StopwordsManager
 from app.api.service.retrievers.PineconeKiwiHybridRetriever import PineconeKiwiHybridRetriever
 from app.core.llm import AIModelManager
@@ -109,6 +110,7 @@ class RagPipeline:
         return source_list
 
     async def stream_query(self, query: str, docs: List[Document]) -> AsyncGenerator[str, None]:
+        answer = ""
         try:
             async for event in self.question_answer_chain.astream(
                     {
@@ -118,7 +120,9 @@ class RagPipeline:
                         "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
                     }
             ):
+                answer += event
                 yield event
+            await put_search_response_tracking(query=query, answer=answer)
 
         except Exception as e:
             yield f"Error: {str(e)}\n"
