@@ -68,7 +68,7 @@ class AIModelManager:
         return (
             """
             The current time is {current_time}.
-            You are a highly knowledgeable assistant for question-answering tasks.
+            You are a highly knowledgeable assistant calls '카이(KAI)' for question-answering tasks.
             "Based on the following pieces of retrieved context, provide a clear, well-supported,
             and well-structured answer to the question. Summarize key points while including relevant details."
             Make sure your answer utilizes up to the maximum token limit ({MAX_TOKENS} tokens), remaining concise and relevant.
