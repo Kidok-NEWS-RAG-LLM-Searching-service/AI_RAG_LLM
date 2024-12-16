@@ -50,7 +50,7 @@ class RagPipeline:
         stopwords=stop_words_manager.fetch_stopwords(),  # 불용어 사전
         tokenizer="kiwi",
         embeddings=embeddings,
-        top_k=5,
+        top_k=30,
         alpha=0.7,
     )
 
@@ -102,7 +102,7 @@ class RagPipeline:
             new_item = {
                     "source": meta["source"],
                     "title": meta["title"],
-                    "date": f"{meta['mod_date']} {meta['mod_timestamp']}",
+                    "date": f"{meta['init_date']} {meta['init_timestamp']}",
                     "image_url": meta["images_url"],
                 }
             if new_item not in source_list:
