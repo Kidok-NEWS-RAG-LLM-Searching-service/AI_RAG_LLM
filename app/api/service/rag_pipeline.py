@@ -30,12 +30,11 @@ class RagPipeline:
 
     # sparse_encoder_path = os.path.join("./app/news_rag_llm/yong_contextual_sparse_encoder.pkl")
     sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl")
-
     global_source_set = set()
 
     if not os.path.exists(sparse_encoder_path):
         print(f"{sparse_encoder_path} not found. Creating sparse encoder...")
-        contextual_chunks_df = pd.read_csv("./app/assets/contents_1_57000.csv")
+        contextual_chunks_df = pd.read_parquet("./app/assets/contents_1_80000.parquet", engine="pyarrow")
         sparse_encoder_value = sparse_encoder.create_sparse_encoder(
             stop_words_manager.fetch_stopwords(), mode="kiwi"
         )
