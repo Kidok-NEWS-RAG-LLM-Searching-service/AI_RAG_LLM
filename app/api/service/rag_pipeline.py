@@ -53,7 +53,7 @@ class RagPipeline:
         tokenizer="kiwi",
         embeddings=embeddings,
         top_k=30,
-        alpha=0.7,
+        alpha=0.3,
     )
 
     init_data = pinecone_index_initializer.get_pinecone_init_data()
