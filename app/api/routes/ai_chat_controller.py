@@ -12,9 +12,6 @@ from langchain_core.documents import Document
 from typing import List
 
 
-router = APIRouter()
-
-
 class QueryRequest(BaseModel):
     query: str
 

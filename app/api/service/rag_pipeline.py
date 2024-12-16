@@ -28,13 +28,14 @@ class RagPipeline:
     llm = ai_model_manager.llm
     embeddings = ai_model_manager.embeddings
 
-    sparse_encoder_path = os.path.join("./app/news_rag_llm/yong_contextual_sparse_encoder.pkl")
+    # sparse_encoder_path = os.path.join("./app/news_rag_llm/yong_contextual_sparse_encoder.pkl")
+    sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl")
 
     global_source_set = set()
 
     if not os.path.exists(sparse_encoder_path):
         print(f"{sparse_encoder_path} not found. Creating sparse encoder...")
-        contextual_chunks_df = pd.read_csv("./app/assets/contextual_chunks_df.csv")
+        contextual_chunks_df = pd.read_csv("./app/assets/contents_1_57000.csv")
         sparse_encoder_value = sparse_encoder.create_sparse_encoder(
             stop_words_manager.fetch_stopwords(), mode="kiwi"
         )
@@ -46,7 +47,8 @@ class RagPipeline:
         print(f"Sparse encoder saved at: {saved_path}")
 
     pinecone_index_initializer = PineconeIndexInitializer(
-        sparse_encoder_path="./app/news_rag_llm/yong_contextual_sparse_encoder.pkl",
+        # sparse_encoder_path="./app/news_rag_llm/yong_contextual_sparse_encoder.pkl",
+        sparse_encoder_path="./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl",
         stopwords=stop_words_manager.fetch_stopwords(),  # 불용어 사전
         tokenizer="kiwi",
         embeddings=embeddings,
@@ -65,7 +67,7 @@ class RagPipeline:
         namespace=init_data["namespace"]
     )
 
-    prompt = ChatPromptTemplate.from_template(AIModelManager.get_custom_prompt_template())
+    prompt = ChatPromptTemplate.from_template(AIModelManager.get_custom_prompt_template_v2())
     question_answer_chain = create_stuff_documents_chain(llm, prompt)
     rag_chain = create_retrieval_chain(pinecone_retriever, question_answer_chain)
 

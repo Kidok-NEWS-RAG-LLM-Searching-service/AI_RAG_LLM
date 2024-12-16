@@ -18,8 +18,8 @@ class PineconeIndexInitializer:
         stopwords: Optional[List[str]] = None,
         tokenizer: str = "kiwi",
         embeddings: Optional[Embeddings] = None,
-        top_k: int = 10,
-        alpha: float = 1,
+        top_k: int = 50,
+        alpha: float = 0.3,
     ):
         self.api_key = settings.pinecone_api_key
         self.namespace = settings.pinecone_namespace
@@ -46,7 +46,7 @@ class PineconeIndexInitializer:
         print(f"[initialize_index]\n{self.index.describe_index_stats()}")
 
         self._load_sparse_encoder()
-        self._set_tokenizer()
+        # self._set_tokenizer()
 
         namespace_keys = self.index.describe_index_stats()["namespaces"].keys()
         if namespace not in namespace_keys:
@@ -67,26 +67,27 @@ class PineconeIndexInitializer:
     def _load_sparse_encoder(self):
         print(self.sparse_encoder_path)
         """Load the sparse encoder from the specified path."""
-
         try:
-            with open(self.sparse_encoder_path, "rb") as f:
-                print("Start loading sparse encoder")
-                self.sparse_encoder = pickle.load(f)
-                print("Sparse encoder loaded successfully")
+            # with open(self.sparse_encoder_path, "rb") as f:
+            print("Start loading sparse encoder")
+            # self.sparse_encoder = pickle.load(f)
+            self.sparse_encoder = sparse_encoder.load(self.sparse_encoder_path)
+            print("Sparse encoder loaded successfully")
 
         except Exception as e:
             raise RuntimeError(f"Failed to load sparse encoder: {e}")
 
-    def _set_tokenizer(self):
-        if self.tokenizer == "kiwi":
-            try:
-                print("Start setting tokenizer")
-                self.sparse_encoder._tokenizer = KiwiBM25Tokenizer(stop_words=self.stopwords)
-                print("Tokenizer set successfully")
-            except Exception as e:
-                raise RuntimeError(f"Failed to set tokenizer: {e}")
-        else:
-            print(f"Tokenizer '{self.tokenizer}' is not supported.")
+
+    # def _set_tokenizer(self):
+    #     if self.tokenizer == "kiwi":
+    #         try:
+    #             print("Start setting tokenizer")
+    #             self.sparse_encoder._tokenizer = KiwiBM25Tokenizer(stop_words=self.stopwords)
+    #             print("Tokenizer set successfully")
+    #         except Exception as e:
+    #             raise RuntimeError(f"Failed to set tokenizer: {e}")
+    #     else:
+    #         print(f"Tokenizer '{self.tokenizer}' is not supported.")
 
     def __describe_index(self) -> Dict[str, Any]:
         if self.index is None:

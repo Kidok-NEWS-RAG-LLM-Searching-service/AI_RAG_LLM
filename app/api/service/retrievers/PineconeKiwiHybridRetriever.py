@@ -124,7 +124,7 @@ class PineconeKiwiHybridRetriever(BaseRetriever, BaseModel):
     @staticmethod
     def _process_query_response(query_response: Dict[str, Any]) -> List[Document]:
         return [
-            Document(page_content=r.metadata["content"], metadata=r.metadata)
+            Document(id=r.metadata["id"], page_content=r.metadata["content"], metadata=r.metadata)
             for r in query_response["matches"]
         ]
 
