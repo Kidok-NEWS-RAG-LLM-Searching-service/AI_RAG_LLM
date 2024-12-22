@@ -36,6 +36,24 @@ class RagPipeline:
     def __init__(self):
         self.timeweighted_retriever = self._init_timeweighted_retriever()
         self.hybird_retriever = self.hybird_dense_sparse_retriever()
+        # 미리 프롬프트 템플릿들 초기화
+        self.summary_prompt = ChatPromptTemplate.from_messages(prompts.summary_prompt_template())
+        self.journalist_prompt = ChatPromptTemplate.from_messages(prompts.jounarlist_prompt_template())
+        
+        # 기본 체인들 미리 생성
+        self.summary_chain = create_stuff_documents_chain(self.llm, self.summary_prompt)
+        self.journalist_chain = create_stuff_documents_chain(self.llm, self.journalist_prompt)
+        
+        self.question_answer_chain = self._init_question_answer_chain()
+        self.timeweighted_rag_chain = create_retrieval_chain(
+            self.timeweighted_retriever, 
+            self.question_answer_chain
+        )
+        
+        self.hybrid_rag_chain = create_retrieval_chain(
+            self.hybird_retriever, 
+            self.question_answer_chain
+        )
 
     stop_words_manager = StopwordsManager()
     ai_model_manager = AIModelManager()
@@ -406,11 +424,8 @@ class RagPipeline:
         return question_answer_chain
 
     def timeweighted_LLM(self, query: str) -> dict:
-        question_answer_chain = self._init_question_answer_chain()
-        rag_chain = create_retrieval_chain(self.timeweighted_retriever, question_answer_chain)
-
         # 체인 실행
-        result = rag_chain.invoke({
+        result = self.timeweighted_rag_chain.invoke({
             "input": query,
             "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
             "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
@@ -419,11 +434,7 @@ class RagPipeline:
         return result
 
     def hybird_dense_sparse_LLM(self, query: str) -> dict:
-        # params 초기설정
-        question_answer_chain = self._init_question_answer_chain()
-        rag_chain = create_retrieval_chain(self.hybird_retriever, question_answer_chain)
-
-        result = rag_chain.invoke(
+        result = self.hybrid_rag_chain.invoke(
             {
                 "input": query,
                 "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
@@ -435,12 +446,11 @@ class RagPipeline:
 
     def date_filter_LLM(self, query: str, date_list: list) -> dict:
         date_filtering_vectorstore = self._init_date_filter_score_retriever(date_list)
-        question_answer_chain = self._init_question_answer_chain()
-        rag_chain = create_retrieval_chain(date_filtering_vectorstore, question_answer_chain)
+        rag_chain = create_retrieval_chain(date_filtering_vectorstore, self.question_answer_chain)
 
         result = rag_chain.invoke(
             {
-                "input": query + '총회',
+                "input": query + ' 총회',
                 "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
                 "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
             }
@@ -449,29 +459,22 @@ class RagPipeline:
         return result
 
     def summary_filter_LLM(self, query: str, date_list: list) -> dict:
-        summary_prompt = prompts.summary_prompt_template()
         filtering_vectorstore = self._init_summary_filter_retriever(date_list)
 
-        # prompt = ChatPromptTemplate.from_template(summary_prompt)
-        prompt = ChatPromptTemplate.from_messages(summary_prompt)
-        summary_chain = create_stuff_documents_chain(self.llm, prompt)
         relevant_docs = filtering_vectorstore._get_relevant_documents(" ")
 
         # 요약 작업 수행
-        answer = summary_chain.invoke({"input": query, "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN, "context": relevant_docs})
-        result = {}
-        result['input'] = query
-        result['answer'] = answer
-        result['context'] = relevant_docs
-        return result
+        answer = self.summary_chain.invoke({
+            "input": query, 
+            "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN, 
+            "context": relevant_docs
+        })
+
+        return {"input": query, "answer": answer, "context": relevant_docs}
 
     def journalist_filter_LLM(self, query: str, name_list: list) -> dict:
-        jounaralist_prompt = ChatPromptTemplate.from_messages(prompts.jounarlist_prompt_template())
         jounaralist_time_filtering_retriever = self._init_jounaralist_time_filter_retriever(name_list)
-
-        question_answer_chain = create_stuff_documents_chain(self.llm, jounaralist_prompt)
-        rag_chain = create_retrieval_chain(jounaralist_time_filtering_retriever, question_answer_chain)
-
+        rag_chain = create_retrieval_chain(jounaralist_time_filtering_retriever, self.journalist_chain)
         result = rag_chain.invoke(
             {
                 "input": query,
