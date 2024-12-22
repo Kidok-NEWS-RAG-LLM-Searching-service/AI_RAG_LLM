@@ -385,7 +385,7 @@ class RagPipeline:
     
     def makeing_source(self, result):
         # Extract sources list
-        print('makeing_source len(result): ', len(result['context']))
+        # print('makeing_source len(result): ', len(result['context']))
         sources_list =  self.extract_sources(result['answer'])
         print(sources_list)
         # Initialize the source list
@@ -396,7 +396,7 @@ class RagPipeline:
             for doc in result.get('context', []):
                 # print(doc.id[:-2])
                 if id == str(doc.id[:-2]):
-                    print('same id: ', id)
+                    # print('same id: ', id)
                     meta = doc.metadata
                     source[ind] = {
                         "source": meta['source'],
@@ -406,8 +406,8 @@ class RagPipeline:
                         "date": f"{meta['init_date']} {meta['init_timestamp'][:-3]}",
                         "journalist_name": meta['journalist_name']
                     }
-                    print(source[ind])
-        print(source)
+                    # print(source[ind])
+        # print(source)
         return source
 
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
