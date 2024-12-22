@@ -2,6 +2,13 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 from langchain_pinecone import PineconeVectorStore
 from app.core.config import settings
 from app.core.llm import AIModelManager
+from typing import List, Dict, Optional, Tuple
+from langchain_core.embeddings import Embeddings
+import string
+from kiwipiepy import Kiwi
+import pickle
+import requests
+
 
 class InitVectorStore:
 
@@ -30,3 +37,97 @@ class InitVectorStore:
             text_key=text_field,
             namespace=''
         )
+        
+    def init_pinecone_index(
+        index_name: str,
+        namespace: str,
+        api_key: str,
+        sparse_encoder_path: str = None,
+        stopwords: List[str] = None,
+        tokenizer: str = "kiwi",
+        embeddings: Embeddings = None,
+        top_k: int = 10,
+        alpha: float = 0.5,
+    ) -> Dict:
+        """Pinecone 인덱스를 초기화하고 필요한 구성 요소를 반환합니다."""
+        pc = Pinecone(api_key=api_key)
+        index = pc.Index(index_name)
+        print(f"[init_pinecone_index]\n{index.describe_index_stats()}")
+
+        try:
+            with open(sparse_encoder_path, "rb") as f:
+                print('start load')
+                bm25 = pickle.load(f)
+                print('finish load')
+            if tokenizer == "kiwi":
+                print('start tokenizer')
+                bm25._tokenizer = KiwiBM25Tokenizer(stop_words=stopwords)
+                print('finish tokenizer')
+        except Exception as e:
+            print(e)
+            return {}
+
+        namespace_keys = index.describe_index_stats()["namespaces"].keys()
+        if namespace not in namespace_keys:
+            raise ValueError(
+                f"`{namespace}` 를 `{list(namespace_keys)}` 에서 찾지 못했습니다."
+            )
+
+        return {
+            "index": index,
+            "namespace": namespace,
+            "sparse_encoder": bm25,
+            "embeddings": embeddings,
+            "top_k": top_k,
+            "alpha": alpha,
+            "pc": pc,
+        }
+        
+    def stopwords():
+        # GitHub URL로부터 'korean_stopwords.txt' 파일을 읽어 한국어 불용어
+        file_url = "https://raw.githubusercontent.com/teddylee777/langchain-teddynote/main/assets/korean_stopwords.txt"
+
+        # 불용어 파일을 인터넷에서 가져옵니다.
+        response = requests.get(file_url)
+        response.raise_for_status()  # HTTP 요청이 실패하면 예외를 발생시킵니다.
+
+        # 응답으로부터 텍스트 데이터를 받아옵니다.
+        stopwords_data = response.text
+
+        # 텍스트 데이터를 줄 단위로 분리합니다.
+        stopwords = stopwords_data.splitlines()
+
+        # 각 줄에서 여분의 공백 문자(개행 문자 등)를 제거합니다.
+        return [word.strip() for word in stopwords]
+
+        
+class KiwiBM25Tokenizer:
+    def __init__(self, stop_words: Optional[List[str]] = None):
+        self._stop_words = set(stop_words) if stop_words else set()
+        self._punctuation = set(string.punctuation)
+        self._tokenizer = self._initialize_tokenizer()
+
+    @staticmethod
+    def _initialize_tokenizer() -> Kiwi:
+        return Kiwi()
+
+    def __call__(self, text: str) -> List[str]:
+        tokens = [token.form for token in self._tokenizer.tokenize(text)]
+        return [
+            word.lower()
+            for word in tokens
+            if word not in self._punctuation and word not in self._stop_words
+        ]
+
+    def __getstate__(self):
+        """Pickle로 저장 가능한 상태를 반환합니다."""
+        state = self.__dict__.copy()
+        # _tokenizer는 저장하지 않습니다.
+        del state["_tokenizer"]
+        return state
+
+    def __setstate__(self, state):
+        """Pickle에서 복원된 상태를 설정합니다."""
+        self.__dict__.update(state)
+        # _tokenizer를 새로 초기화합니다.
+        self._tokenizer = self._initialize_tokenizer()

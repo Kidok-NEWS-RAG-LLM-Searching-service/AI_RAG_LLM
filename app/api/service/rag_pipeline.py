@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from typing import List
 import json
 import re
+from functools import wraps
+import time
 
 import pandas as pd
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -13,6 +15,7 @@ from langchain_core.documents import Document
 from app.api.service.encoders.encoders import sparse_encoder
 from app.api.service.logs.log import put_search_response_tracking
 from app.api.service.managers.stop_words_manager import StopwordsManager
+from app.api.service.retrievers.NewPineconeKiwiHybridRetriever import NewPineconeKiwiHybridRetriever
 from app.api.service.retrievers.PineconeKiwiHybridRetriever import PineconeKiwiHybridRetriever
 from app.api.service.retrievers.TimeWeightedCustomVectorStoreRetriever import TimeWeightedCustomVectorStoreRetriever
 from app.api.service.retrievers.TimeWeightedJounaralistFilteringVectorStoreRetriever import TimeWeightedJounaralistFilteringVectorStoreRetriever
@@ -21,6 +24,7 @@ from app.core.pinecone_index_initializer import PineconeIndexInitializer
 from app.core import prompts
 from app.core.init_method import InitVectorStore
 from app.core.vectorstore import CustomPineconeVectorStore
+from app.core.config import settings
 
 from typing import AsyncGenerator
 
@@ -31,6 +35,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 class RagPipeline:
     def __init__(self):
         self.timeweighted_retriever = self._init_timeweighted_retriever()
+        self.hybird_retriever = self.hybird_dense_sparse_retriever()
 
     stop_words_manager = StopwordsManager()
     ai_model_manager = AIModelManager()
@@ -63,7 +68,7 @@ class RagPipeline:
         tokenizer="kiwi",
         embeddings=embeddings,
         top_k=20,
-        alpha=0.3,
+        alpha=0.5,
     )
 
     init_data = pinecone_index_initializer.get_pinecone_init_data()
@@ -91,7 +96,11 @@ class RagPipeline:
             decay_rate=0.000_1,  # 0.000_000_1
             k=20,  # 반환할 최대 문서 개수
             search_type="similarity_score_threshold",
-            search_kwargs={'score_threshold': 0.319, }
+            search_kwargs={'score_threshold': 0.319, 
+                           'filter': {
+                               'section': {'$nin': ['기독AD']}
+                           }
+                           }
         )
 
     def _init_date_filter_score_retriever(self, date_list: list):
@@ -125,21 +134,29 @@ class RagPipeline:
             vectorstore=self.jounaralist_customize_vectorstore,
             decay_rate=0.000_1,  # 0.000_000_1
             k=20,  # 반환할 최대 문서 개수
-            name_list=name_list
+            name_list=name_list,
+            search_kwargs={'filter': {
+                'section': {'$nin': ['기독AD']}
+                }
+                }
         )
-
-    init_data = pinecone_index_initializer.get_pinecone_init_data()
-    hybird_retriever = PineconeKiwiHybridRetriever(
-        embeddings=init_data["embeddings"],
-        sparse_encoder=init_data["sparse_encoder"],
-        index=init_data["index"],
-        top_k=init_data["top_k"],
-        alpha=init_data["alpha"],
-        namespace=init_data["namespace"]
-    )
-    
-    
-
+        
+    def _init_pinecone_index(self):
+        return InitVectorStore.init_pinecone_index(
+            index_name=settings.pinecone_index_name,  # Pinecone 인덱스 이름
+            namespace="",  # Pinecone Namespace
+            api_key= settings.pinecone_api_key,  # Pinecone API Key
+            sparse_encoder_path=self.sparse_encoder_path,  # Sparse Encoder 저장경로(save_path)
+            stopwords=InitVectorStore.stopwords(),  # 불용어 사전
+            tokenizer="kiwi",
+            embeddings=self.embeddings,  # Dense Embedder
+            top_k=20,  # Top-K 문서 반환 개수
+            alpha=.3,  # alpha=0.75로 설정한 경우, (0.75: Dense Embedding, 0.25: Sparse Embedding)
+        )    
+        
+    def hybird_dense_sparse_retriever(self):
+        pinecone_params = self._init_pinecone_index()
+        return NewPineconeKiwiHybridRetriever(**pinecone_params)
 
 
     prompt = ChatPromptTemplate.from_template(AIModelManager.get_custom_prompt_template_v2())
@@ -166,8 +183,9 @@ class RagPipeline:
         """
         response = self.client.chat.completions.create(
             model=model,
-            messages=[{"role": "system", "content": prompts.date_cal_prompt_system()},
-                      {"role": "user", "content": prompts.date_cal_prompt_user(query=query)}]
+            messages=[
+                {"role": "system", "content": prompts.date_cal_prompt_system()},
+                {"role": "user", "content": prompts.date_cal_prompt_user(query=query)}]
         )
 
         return response.choices[0].message.content
@@ -185,6 +203,19 @@ class RagPipeline:
 
         return response.choices[0].message.content
 
+        
+    def timer(func):
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = func(*args, **kwargs)
+            end_time = time.time()
+            print(f"{func.__name__} 실행 시간: {end_time - start_time:.2f}초")
+            return result
+        return wrapper
+
+    @timer
     def logical_routing(self, query: str) -> dict:
         """
         Route the query based on the intent identified by the LLM.
@@ -336,25 +367,29 @@ class RagPipeline:
     
     def makeing_source(self, result):
         # Extract sources list
-        sources_list = self.extract_sources(result['answer'])
+        print('makeing_source len(result): ', len(result['context']))
+        sources_list =  self.extract_sources(result['answer'])
         print(sources_list)
         # Initialize the source list
         source = [0] * len(sources_list)
         # Iterate over the context and populate the source list
-        for doc in result.get('context', []):
-            if doc.id[:-2] in sources_list:
-                # Get the index where this source should go
-                idx = sources_list.index(doc.id[:-2])
-
-                meta = doc.metadata
-                source[idx] = ( {
-                    "source": meta['source'],
-                    "title": meta['title'],
-                    "section": meta['primary_section'],
-                    "date": f"{meta['init_date']} {meta['init_timestamp'][:-3]}",
-                    "journalist_name": meta['journalist_name']
-                }
-                )
+        
+        for ind, id in enumerate(sources_list):
+            for doc in result.get('context', []):
+                # print(doc.id[:-2])
+                if id == str(doc.id[:-2]):
+                    print('same id: ', id)
+                    meta = doc.metadata
+                    source[ind] = {
+                        "source": meta['source'],
+                        "image_url": meta['images_url'],
+                        "title": meta['title'],
+                        "section": meta['primary_section'],
+                        "date": f"{meta['init_date']} {meta['init_timestamp'][:-3]}",
+                        "journalist_name": meta['journalist_name']
+                    }
+                    print(source[ind])
+        print(source)
         return source
 
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
@@ -447,6 +482,8 @@ class RagPipeline:
 
         return result
 
+    
+    @timer
     def query_model_pipeline(self, query: str):
 
         routing = {}
@@ -500,6 +537,16 @@ class RagPipeline:
                 return self.hybird_dense_sparse_LLM(query)
             print(name_list)
             return self.journalist_filter_LLM(query, name_list)
+
+
+
+
+
+
+
+
+
+
 
 
 

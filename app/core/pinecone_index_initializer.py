@@ -18,7 +18,7 @@ class PineconeIndexInitializer:
         stopwords: Optional[List[str]] = None,
         tokenizer: str = "kiwi",
         embeddings: Optional[Embeddings] = None,
-        top_k: int = 50,
+        top_k: int = 20,
         alpha: float = 0.3,
     ):
         self.api_key = settings.pinecone_api_key
