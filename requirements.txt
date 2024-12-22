@@ -95,6 +95,7 @@ stack-data==0.6.3
 starlette==0.41.3
 tenacity==9.0.0
 tiktoken==0.8.0
+timedelta==2020.12.3
 tokenizers==0.19.1
 tqdm==4.67.1
 traitlets==5.14.3

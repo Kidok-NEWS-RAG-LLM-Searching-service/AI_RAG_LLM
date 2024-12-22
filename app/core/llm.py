@@ -20,7 +20,7 @@ class AIModelManager:
     ):
         self.embeddings = self._init_embeddings()
         self.llm = self._init_llm(llm_temperature, llm_max_tokens, llm_time_out, llm_max_retries)
-        self.client = OpenAI()
+        self.client = OpenAI(api_key=settings.openai_api_key)
 
 
     def _init_embeddings(self):
