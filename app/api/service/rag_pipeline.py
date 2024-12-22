@@ -111,7 +111,7 @@ class RagPipeline:
         # Retriever 초기화
         return TimeWeightedCustomVectorStoreRetriever(
             vectorstore=self.custom_vectorstore,
-            decay_rate=0.000_1,  # 0.000_000_1
+            decay_rate=0.000_5,  # 0.000_000_1
             k=20,  # 반환할 최대 문서 개수
             search_type="similarity_score_threshold",
             search_kwargs={'score_threshold': 0.319, 
@@ -174,7 +174,7 @@ class RagPipeline:
         
     def hybird_dense_sparse_retriever(self):
         pinecone_params = self._init_pinecone_index()
-        return NewPineconeKiwiHybridRetriever(**pinecone_params)
+        return NewPineconeKiwiHybridRetriever(**pinecone_params, search_kwargs={'filter': {'section': {'$nin': ['기독AD']}}})
 
 
     prompt = ChatPromptTemplate.from_template(AIModelManager.get_custom_prompt_template_v2())
