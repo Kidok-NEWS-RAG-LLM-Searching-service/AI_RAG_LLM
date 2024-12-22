@@ -72,3 +72,22 @@ async def get_stream_result(request: DocsRequest):
         )
 
 
+@router.post("/query_routing", response_model=QueryResponse)
+def get_query_result(request: QueryRequest):
+    try:
+        result = rag_pipeline.query_model_pipeline(request.query)
+        answer = rag_pipeline.get_answer(result)
+        sources = rag_pipeline.makeing_source(result)
+
+        response = {
+            "answer": answer,
+            "sources": sources
+        }
+
+        return response
+    except Exception as e:
+        # 에러 핸들링
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+

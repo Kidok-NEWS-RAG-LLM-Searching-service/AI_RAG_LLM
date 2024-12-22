@@ -46,6 +46,7 @@ kiwipiepy_model==0.20.0
 langchain==0.3.9
 langchain-core==0.3.21
 langchain-openai==0.2.11
+langchain-pinecone==0.2.0
 langchain-text-splitters==0.3.2
 langchain-upstage==0.4.0
 langsmith==0.1.147

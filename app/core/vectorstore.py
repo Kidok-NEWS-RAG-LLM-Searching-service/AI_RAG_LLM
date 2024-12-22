@@ -1,0 +1,103 @@
+
+from langchain_core.vectorstores import VectorStore
+from langchain_pinecone import PineconeVectorStore
+from langchain_core.documents import Document
+from typing import List, Any, Tuple, Optional
+from langchain_core.vectorstores import VectorStoreRetriever
+from app.api.service.retrievers.CustomVectorStoreRetriever import CustomVectorStoreRetriever
+
+class CustomPineconeVectorStore(VectorStore):
+    def __init__(self, base_store: PineconeVectorStore):
+        self.base_store = base_store  # 기존 PineconeVectorStore 객체를 저장
+
+    # 기존 PineconeVectorStore의 from_texts 호출
+    @classmethod
+    def from_texts(cls, texts: List[str], **kwargs: Any):
+        return cls(base_store=PineconeVectorStore.from_texts(texts, **kwargs))
+
+    # similarity_search 구현
+    def similarity_search(self, query: str, **kwargs: Any) -> List[Document]:
+        return self.base_store.similarity_search(query, **kwargs)
+
+    def similarity_search_with_score(
+            self, query: str, **kwargs: Any
+    ) -> List[Tuple[Document, float]]:
+        """Run similarity search with scores using custom logic."""
+        print("Custom similarity_search_with_score is being used.")
+        embedding = self.base_store._embedding.embed_query(query)
+        return self.similarity_search_by_vector_with_score(
+            embedding, **kwargs
+        )
+
+    def as_retriever(self, **kwargs: Any) -> VectorStoreRetriever:
+        tags = kwargs.pop("tags", None) or [] + self._get_retriever_tags()
+        return CustomVectorStoreRetriever(vectorstore=self, tags=tags, **kwargs)
+
+    @staticmethod
+    def _get_summary_docs(docs: List[Tuple[Document, float]]) -> list[Document]:
+        print('get only summary page_content')
+        summary_docs = docs.copy()
+        for doc in summary_docs:
+            doc[0].page_content = doc[0].page_content.split(" <Content>:")[0]
+        return [doc for doc, _ in summary_docs]
+        # return summary_docs
+
+    def similarity_search_by_vector_with_score(
+            self,
+            embedding: List[float],
+            *,
+            k: int = 4,
+            filter: Optional[dict] = None,
+            namespace: Optional[str] = None,
+            setting: Optional[str] = None,
+    ) -> list[Document] | list[tuple[Document, Any]]:
+        """Return pinecone documents most similar to embedding, along with scores."""
+
+        # # `_text_key`를 안전하게 가져오기
+        text_keys = getattr(self.base_store, "_text_key", [])
+        if isinstance(text_keys, str):
+            text_keys = [text_keys]  # 문자열인 경우 리스트로 변환
+        if namespace is None:
+            namespace = self._namespace
+        docs = []
+        results = self._index.query(
+            vector=embedding,
+            top_k=k,
+            include_metadata=True,
+            namespace=namespace,
+            filter=filter,
+        )
+        for res in results["matches"]:
+            metadata = res["metadata"]
+            id = res.get("id")
+            if any(k in metadata for k in text_keys):
+                common_keys = [k for k in text_keys if k in metadata]
+                text_parts = []
+
+                for key in common_keys:
+                    value = metadata.pop(key) if key == "content" else metadata.get(key, "")
+                    # 리스트일 경우 문자열로 변환
+                    if isinstance(value, list):
+                        value = " ".join(value)
+                    text_parts.append(key + ': ' + value + ' |')
+
+                text = " ".join(text_parts)
+                score = res["score"]
+                docs.append(
+                    (Document(id=id, page_content='id: ' + id[:-2] + ' |' + text, metadata=metadata), score)
+                )
+            else:
+                print(
+                    f"Found document with no `{self._text_key}` key. Skipping."
+                )
+
+        if setting == 'summary':
+            # 요약 모델일때는 요약만 가져오기
+            return self._get_summary_docs(docs)
+        else:
+            return docs
+
+    # 나머지 메서드는 기본 PineconeVectorStore의 메서드를 호출
+    def __getattr__(self, name):
+        return getattr(self.base_store, name)
+
