@@ -80,7 +80,7 @@ def get_query_result(request: QueryRequest):
         sources = rag_pipeline.makeing_source(result)
 
         response = {
-            "answer": answer,
+            "rag_result": answer,
             "sources": sources
         }
 

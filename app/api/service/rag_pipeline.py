@@ -29,6 +29,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class RagPipeline:
+    def __init__(self):
+        self.timeweighted_retriever = self._init_timeweighted_retriever()
+
     stop_words_manager = StopwordsManager()
     ai_model_manager = AIModelManager()
 
@@ -134,7 +137,8 @@ class RagPipeline:
         alpha=init_data["alpha"],
         namespace=init_data["namespace"]
     )
-    timeweighted_retriever = _init_timeweighted_retriever()
+    
+    
 
 
 
@@ -241,7 +245,7 @@ class RagPipeline:
                 return []
 
     # 총회 기간을 날짜로 바꾸는 파일과 함수
-    with open('../../assets/session_period.json', 'r') as file:
+    with open('./app/assets/session_period.json', 'r') as file:
         session_period = json.load(file)
 
     def session_to_date_list(self, sessions):
@@ -309,24 +313,47 @@ class RagPipeline:
         return []
 
     # LLM 최종 답변 중 source 추출 함수
+    # def makeing_source(self, result):
+    #     # Extract sources list
+    #     sources_list = self.extract_sources(result['answer'])
+    #     print(sources_list)
+    #     # Create a mapping for sources to their index
+    #     sources_index = {doc_id: idx for idx, doc_id in enumerate(sources_list)}
+    #     # Initialize the source list
+    #     source = [0] * len(sources_list)
+    #     # Iterate over the context and populate the source list
+    #     for doc in result.get('context', []):
+    #         if doc.id[:-2] in sources_index:
+    #             # print(doc.id)
+    #             idx = sources_index[doc.id[:-2]]
+    #             meta = doc.metadata
+    #             source[idx] = (
+    #                 f"source: {meta['source']}, title: {meta['title']}, "
+    #                 f"section: {meta['primary_section']}, {meta['init_date']} "
+    #                 f"{meta['init_timestamp']} {meta['journalist_name']}"
+    #             )
+    #     return source
+    
     def makeing_source(self, result):
         # Extract sources list
         sources_list = self.extract_sources(result['answer'])
         print(sources_list)
-        # Create a mapping for sources to their index
-        sources_index = {doc_id: idx for idx, doc_id in enumerate(sources_list)}
         # Initialize the source list
         source = [0] * len(sources_list)
         # Iterate over the context and populate the source list
         for doc in result.get('context', []):
-            if doc.id[:-2] in sources_index:
-                # print(doc.id)
-                idx = sources_index[doc.id[:-2]]
+            if doc.id[:-2] in sources_list:
+                # Get the index where this source should go
+                idx = sources_list.index(doc.id[:-2])
+
                 meta = doc.metadata
-                source[idx] = (
-                    f"source: {meta['source']}, title: {meta['title']}, "
-                    f"section: {meta['primary_section']}, {meta['init_date']} "
-                    f"{meta['init_timestamp']} {meta['journalist_name']}"
+                source[idx] = ( {
+                    "source": meta['source'],
+                    "title": meta['title'],
+                    "section": meta['primary_section'],
+                    "date": f"{meta['init_date']} {meta['init_timestamp'][:-3]}",
+                    "journalist_name": meta['journalist_name']
+                }
                 )
         return source
 
