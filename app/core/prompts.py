@@ -140,12 +140,12 @@ def date_cal_prompt_user(query:str):
         Provide the result in the following format without any other text:
         [
             {{
-                "start_date": YYYY-MM-DD,
-                "end_date": YYYY-MM-DD
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD"        
             }},
             {{
-                "start_date": YYYY-MM-DD,
-                "end_date": YYYY-MM-DD
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD"        
             }},
         ]
 
@@ -170,7 +170,7 @@ def extract_session_prompt_user(query:str):
         1. If the query includes one or more numbers followed by "회" or "총회" (e.g., "108회", "109회 총회"), extract all the numbers in the order they appear.
         2. If the query includes the words "지금", "현재", or "최근" alongside "회" or "총회", add 0 to the result.
         3. If no such pattern is found, respond with "No session numbers found."
-        3. Output the session numbers as a JSON array of integers (e.g., [108, 109, 0]) or an error message as a string.
+        3. Output the session numbers with list format (e.g., [108, 109, 0]) or an error message as a string.
     
         Query: {query}
         """
@@ -179,7 +179,7 @@ def extract_session_prompt_system():
     return (
         "You are a highly intelligent assistant specialized in extracting numeric session numbers from user queries. \
         Your task is to analyze queries carefully and extract all relevant session numbers based on strict rules. \
-        Ensure the output format is either a JSON array of integers or an error message as a string. \
+        Ensure the output format is either a array of integers or an error message as a string. \
         Focus on accuracy and adhere to the given extraction rules without deviation."
     )
 

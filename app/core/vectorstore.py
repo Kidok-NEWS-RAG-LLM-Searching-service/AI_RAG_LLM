@@ -25,8 +25,15 @@ class CustomPineconeVectorStore(VectorStore):
         """Run similarity search with scores using custom logic."""
         print("Custom similarity_search_with_score is being used.")
         embedding = self.base_store._embedding.embed_query(query)
+        # CustomVectorStoreRetriever에서 전달받은 self.search_kwargs와
+        # 다른 곳에서 전달받은 kwargs를 합치기
+        combined_kwargs = {}
+        if hasattr(self, 'search_kwargs'):
+            combined_kwargs.update(self.search_kwargs)
+        combined_kwargs.update(kwargs)
+        
         return self.similarity_search_by_vector_with_score(
-            embedding, **kwargs
+            embedding, **combined_kwargs
         )
 
     def as_retriever(self, **kwargs: Any) -> VectorStoreRetriever:
@@ -39,7 +46,7 @@ class CustomPineconeVectorStore(VectorStore):
         summary_docs = docs.copy()
         for doc in summary_docs:
             doc[0].page_content = doc[0].page_content.split(" <Content>:")[0]
-        return [doc for doc, _ in summary_docs]
+        return [doc for doc, score in summary_docs]
         # return summary_docs
 
     def similarity_search_by_vector_with_score(
@@ -50,11 +57,44 @@ class CustomPineconeVectorStore(VectorStore):
             filter: Optional[dict] = None,
             namespace: Optional[str] = None,
             setting: Optional[str] = None,
+            search_type: Optional[str] = 'similarity',
+            score_threshold: Optional[float] = 0,
+            type: Optional[str] = None,
+            **kwargs: Any
     ) -> list[Document] | list[tuple[Document, Any]]:
         """Return pinecone documents most similar to embedding, along with scores."""
-        print('similarity_search_by_vector_with_score')
-        print('filter: ', filter)
+        print('start similarity_search_by_vector_with_score')
         print('k: ', k)
+        print('filter: ', filter)
+        print('namespace: ', namespace)
+        print('setting: ', setting)
+        print('search_type: ', search_type)
+        print('score_threshold: ', score_threshold)
+        print('type: ', type)
+        # print('search_kwargs: ', kwargs)
+        # search_params = {
+        #     'k': k,
+        #     'filter': filter,
+        #     'namespace': namespace,
+        #     'setting': setting,
+        #     'search_type': search_type,
+        #     'score_threshold': score_threshold,
+        #     'type': type
+        # }
+        
+        # # search_kwargs의 값으로 업데이트
+        # search_params.update(kwargs)
+        
+        # # 변수 할당
+        # k = search_params['k']
+        # filter = search_params['filter']
+        # namespace = search_params['namespace']
+        # setting = search_params['setting']
+        # search_type = search_params['search_type']
+        # score_threshold = search_params['score_threshold']
+        # type = search_params['type']
+
+        # print('search_params: ', search_params)
         # # `_text_key`를 안전하게 가져오기
         text_keys = getattr(self.base_store, "_text_key", [])
         if isinstance(text_keys, str):
@@ -62,7 +102,7 @@ class CustomPineconeVectorStore(VectorStore):
         if namespace is None:
             namespace = self._namespace
         docs = []
-        if setting == 'None':
+        if setting == 'no_query_embedding':
             print('setting is None')
             results = self._index.query(
             vector=[0]*4096,
@@ -79,7 +119,7 @@ class CustomPineconeVectorStore(VectorStore):
                 namespace=namespace,
                 filter=filter,
             )
-        print(len(results["matches"]))
+        # print(len(results["matches"]))
         for res in results["matches"]:
             metadata = res["metadata"]
             id = res.get("id")
@@ -104,9 +144,29 @@ class CustomPineconeVectorStore(VectorStore):
                     f"Found document with no `{self._text_key}` key. Skipping."
                 )
 
+        print('search_type: ', search_type)
+        print('type: ', type)
         if setting == 'summary':
             # 요약 모델일때는 요약만 가져오기
             return self._get_summary_docs(docs)
+        elif search_type == "similarity_score_threshold" and type is None:
+            score_threshold_docs = []
+            # print('start testtesttest')
+            # print('score_threshold: ', score_threshold)
+            docs_and_similarities = docs.copy()
+            filtered_docs = [
+                doc for doc, similarity in docs_and_similarities
+                if similarity >= score_threshold
+            ]   
+            return filtered_docs
+        elif search_type == "similarity_score_threshold" and type is not None:
+            docs_and_similarities = docs.copy()
+            filtered_docs = [
+                (doc, similarity) for doc, similarity in docs_and_similarities
+                if similarity >= score_threshold
+            ]
+            print('ready filtered_docs')
+            return filtered_docs
         else:
             return docs
 

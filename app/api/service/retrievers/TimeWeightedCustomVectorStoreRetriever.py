@@ -84,8 +84,8 @@ class TimeWeightedCustomVectorStoreRetriever(CustomVectorStoreRetriever):
 
     vectorstore: CustomPineconeVectorStore = Field(default=None)
     decay_rate: float = Field(default=0.01)
-    k: int = Field(default=4)
-    search_type: str = Field(default='similarity_score_threshold')
+    # k: int = Field(default=4)
+    # search_type: str = Field(default='similarity_score_threshold')
     search_kwargs: dict = Field(default=dict)
     
     def __init__(self, vectorstore: CustomPineconeVectorStore, **kwargs):
@@ -111,16 +111,17 @@ class TimeWeightedCustomVectorStoreRetriever(CustomVectorStoreRetriever):
         time_score = (1.0 - self.decay_rate) ** hours_passed
         return vector_relevance + time_score
 
-    def _get_rescored_docs(self, docs_and_scores: List[Tuple[Document, float]]) -> List[Document]:
+    def _get_rescored_docs(self, docs_and_scores: List[Tuple[Document, float]], k: int) -> List[Document]:
         """Rescore and sort the documents based on combined scores."""
         current_time = datetime.now()
+        print('start rescored_docs_in code')
         rescored_docs = [
             (doc, self._get_combined_score(score, doc, current_time))
             for doc, score in docs_and_scores
         ]
         rescored_docs.sort(key=lambda x: x[1], reverse=True)
         # return [(score, doc) for doc, score in rescored_docs[:self.k]]
-        return [doc for doc, _ in rescored_docs[:self.k]]
+        return [doc for doc, _ in rescored_docs[:k]]
 
     def _get_summary_docs(self, rescored_docs: List[Document]) -> List[Document]:
         summary_docs = rescored_docs.copy()
@@ -148,23 +149,27 @@ class TimeWeightedCustomVectorStoreRetriever(CustomVectorStoreRetriever):
     ) -> List[Document]:
         """Retrieve and rescore documents based on query."""
         # 사용 예제
-        print('search_type: ', self.search_type)
+        # print('search_type: ', self.search_type)
         rescored_docs: List[Document] = Field(default_factory=List[Document])
-
-        docs_and_scores = CustomVectorStoreRetriever(
-            vectorstore=self.vectorstore,
-            search_type=self.search_type,
-            search_kwargs = {
-                **self.search_kwargs
-            }
-        )._get_relevant_documents(
+        
+        docs_and_scores = self.vectorstore.similarity_search_with_score(
             query=query,
-            k=40, # 40개 중에서 score에 따라 self.k개를 추출
+            k=40,
+            **self.search_kwargs,
         )
+        # docs_and_scores = CustomVectorStoreRetriever(
+        #     vectorstore=self.vectorstore,
+        #     # search_type=self.search_type,
+        # )._get_relevant_documents(
+        #     query=query,
+        #     k=40, # 40개 중에서 score에 따라 self.k개를 추출
+        #     **self.search_kwargs,
+        # )
         print('len(docs): ', len(docs_and_scores))
 
         # Step 2: Rescore documents (combine vector relevance and time scores)
-        rescored_docs = self._get_rescored_docs(docs_and_scores)
+        print('start rescored_docs')
+        rescored_docs = self._get_rescored_docs(docs_and_scores, k=20)
 
         # page_content에서 요약했던 contextual 부분만 가져오기
         # summary_docs = self._get_summary_docs(rescored_docs)

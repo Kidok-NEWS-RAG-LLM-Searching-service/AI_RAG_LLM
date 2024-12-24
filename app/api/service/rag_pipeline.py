@@ -111,26 +111,27 @@ class RagPipeline:
         # Retriever 초기화
         return TimeWeightedCustomVectorStoreRetriever(
             vectorstore=self.custom_vectorstore,
-            decay_rate=0.000_5,  # 0.000_000_1
-            k=20,  # 반환할 최대 문서 개수
-            search_type='similarity_score_threshold',
+            decay_rate=0.000_001,  # 0.000_000_1
+            # k=20,  # 반환할 최대 문서 개수
             search_kwargs={
+                'search_type': 'similarity_score_threshold',
                 'score_threshold': 0.319,  # 0과 1 사이의 값 설정
-                'filter': {'section': {'$nin': ['기독AD']}}
+                'filter': {'section': {'$nin': ['기독AD']}},
+                'type': 'time_weighted'
             }
         )
 
     def _init_date_filter_score_retriever(self, date_list: list):
         return self.custom_vectorstore.as_retriever(
-            search_type="similarity_score_threshold",
             search_kwargs={
+                'search_type': 'similarity_score_threshold',
                 'score_threshold': 0.319,  # 원래 0.67이였음(similarity_search_with_relevance_scores 계산 방식으로 정규화가 되기 때문에)
                 # 그런데 내가 해당 함수 cumstomize하면서 그냥 정규화 안된 score로 점수 거르게 만들어서 이렇게 점수 사용.
                 'k': 20,
                 "filter": {
                     "init_date": {"$in": date_list},
                     "section": {"$nin": ['설교', '기독AD', '오피니언']}
-                }
+                },
             }
         )
 
@@ -149,7 +150,7 @@ class RagPipeline:
     def _init_jounaralist_time_filter_retriever(self, name_list: list, type: str):
         if type == 'recent':
             date = datetime.now().year-1
-            setting = 'None'
+            setting = 'no_query_embedding'
         else:
             date = 1900
             setting = 'original'
@@ -309,6 +310,12 @@ class RagPipeline:
                         current_date += timedelta(days=1)
 
                 return date_list
+            
+            except json.JSONDecodeError as e:
+                print(f"JSON 파싱 오류: {e}")
+                print('llm_output: ', llm_output)
+                print(e)
+                return []
             except Exception as e:
                 print('llm_output: ', llm_output)
                 print(e)
@@ -444,6 +451,7 @@ class RagPipeline:
         question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
         return question_answer_chain
 
+    @timer
     def timeweighted_LLM(self, query: str) -> dict:
         # 체인 실행
         result = self.timeweighted_rag_chain.invoke({
@@ -454,6 +462,7 @@ class RagPipeline:
 
         return result
 
+    @timer
     def hybird_dense_sparse_LLM(self, query: str) -> dict:
         result = self.hybrid_rag_chain.invoke(
             {
@@ -465,6 +474,7 @@ class RagPipeline:
 
         return result
 
+    @timer
     def date_filter_LLM(self, query: str, date_list: list) -> dict:
         date_filtering_vectorstore = self._init_date_filter_score_retriever(date_list)
         rag_chain = create_retrieval_chain(date_filtering_vectorstore, self.question_answer_chain)
@@ -478,7 +488,8 @@ class RagPipeline:
         )
 
         return result
-
+    
+    @timer
     def summary_filter_LLM(self, query: str, date_list: list) -> dict:
         filtering_vectorstore = self._init_summary_filter_retriever(date_list)
 
@@ -493,6 +504,7 @@ class RagPipeline:
 
         return {"input": query, "answer": answer, "context": relevant_docs}
 
+    @timer
     def journalist_filter_LLM(self, query: str, name_list: list) -> dict:
         check = self.recent_or_global_cal_llm(query)
         if 'recent' in check:
