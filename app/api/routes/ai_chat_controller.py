@@ -87,7 +87,7 @@ def get_query_result(request: QueryRequest):
         return response
     except Exception as e:
         # 에러 핸들링
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(500, str(e))
 
 
 

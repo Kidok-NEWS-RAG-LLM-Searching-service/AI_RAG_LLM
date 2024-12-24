@@ -113,12 +113,11 @@ class RagPipeline:
             vectorstore=self.custom_vectorstore,
             decay_rate=0.000_5,  # 0.000_000_1
             k=20,  # 반환할 최대 문서 개수
-            search_type="similarity_score_threshold",
-            search_kwargs={'score_threshold': 0.319, 
-                           'filter': {
-                               'section': {'$nin': ['기독AD']}
-                           }
-                           }
+            search_type='similarity_score_threshold',
+            search_kwargs={
+                'score_threshold': 0.319,  # 0과 1 사이의 값 설정
+                'filter': {'section': {'$nin': ['기독AD']}}
+            }
         )
 
     def _init_date_filter_score_retriever(self, date_list: list):
@@ -147,16 +146,26 @@ class RagPipeline:
             }
         )
 
-    def _init_jounaralist_time_filter_retriever(self, name_list: list):
+    def _init_jounaralist_time_filter_retriever(self, name_list: list, type: str):
+        if type == 'recent':
+            date = datetime.now().year-1
+            setting = 'None'
+        else:
+            date = 1900
+            setting = 'original'
         return TimeWeightedJounaralistFilteringVectorStoreRetriever(
             vectorstore=self.jounaralist_customize_vectorstore,
-            decay_rate=0.000_1,  # 0.000_000_1
+            decay_rate=0.000_000_1,  # 0.000_000_1
             k=20,  # 반환할 최대 문서 개수
-            name_list=name_list,
-            search_kwargs={'filter': {
-                'section': {'$nin': ['기독AD']}
-                }
-                }
+            search_kwargs={
+                'name_list': name_list,
+                'filter': {
+                    'section': {'$nin': ['기독AD']},
+                    'init_year': {'$gte': date}
+                },
+                'type': type,
+                'setting': setting
+            }
         )
         
     def _init_pinecone_index(self):
@@ -217,6 +226,18 @@ class RagPipeline:
             model=model,
             messages=[{"role": "system", "content":prompts.extract_session_prompt_system()},
                       {"role": "user", "content": prompts.extract_session_prompt_user(query=query)}]
+        )
+
+        return response.choices[0].message.content
+    
+    # 기자 뉴스 모델 중 '최신' 혹은 '전체 기간' 대한 LLM을 호출하는 함수
+    def recent_or_global_cal_llm(self, query: str, model: str = ai_model_manager.DEFAULT_LLM_MODEL) -> str:
+        """
+        Query the LLM with a prompt and return the response.
+        """
+        response = self.client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompts.check_recent_or_global_prompt(query=query)}]
         )
 
         return response.choices[0].message.content
@@ -473,7 +494,13 @@ class RagPipeline:
         return {"input": query, "answer": answer, "context": relevant_docs}
 
     def journalist_filter_LLM(self, query: str, name_list: list) -> dict:
-        jounaralist_time_filtering_retriever = self._init_jounaralist_time_filter_retriever(name_list)
+        check = self.recent_or_global_cal_llm(query)
+        if 'recent' in check:
+            type = 'recent'
+        else:
+            type = 'global'
+        print('type: ', type)
+        jounaralist_time_filtering_retriever = self._init_jounaralist_time_filter_retriever(name_list, type)
         rag_chain = create_retrieval_chain(jounaralist_time_filtering_retriever, self.journalist_chain)
         result = rag_chain.invoke(
             {

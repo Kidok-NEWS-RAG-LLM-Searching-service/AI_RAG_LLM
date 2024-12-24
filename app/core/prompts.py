@@ -63,6 +63,7 @@ def query_routing_prompt_user(query:str):
         - "Tell me about 박민균 기자."  
         - "What articles has 우리나 기자 written?"
         - "Who is 정형권 기자?"
+        - "요즘 박민균 기자는 어떤 기사를 써?"
 
         ---
 
@@ -82,7 +83,7 @@ def query_routing_prompt_user(query:str):
         - If the query explicitly requests a summary (e.g. "정리" or "요약"), classify it under **Time-Based News Summarization** unless a specific session or date is prioritized.
         
         5. **Journalist-Related Query vs General Q&A Retrieval** vs Time-Weighted Entity Retrieval: 
-        - If the query explicitly mentions a specific journalist (e.g. "000 기자"), classify it as **Journalist-Related Query**.
+        - If the query explicitly mentions a specific journalist with recent time(e.g. "000 기자", 요즘), You should classify it as **Journalist-Related Query**.
         - If the query asks generally about journalists (e.g. "기독신문사에 어떤 기자가 있어?"), classify it as **General Q&A Retrieval**.
         - If the query type focuses on time like current (e.g. "현재", "지금 기독신문사 기자는 누가 있어?"), classify it as **Time-Weighted Entity Retrieval**.
 
@@ -241,7 +242,9 @@ def custom_prompt_template():
         
             #Question: 
             {input}    
-        
+            
+            Ensure that:
+            - 정보가 있다 하더라도 기독교 외 타 종교가 포함된 모든 질문(eg. '불교', '이슬람', '카톨릭', '천주교')은 답변을 제공하지 않아야 해. 예를 들어 이렇게 답변해 '기독교외의 종교 관련 내용은 제공하지 않습니다. 죄송합니다.'
             If the #Context section is empty or does not contain relevant information, respond with like this detail: 
             "제공된 정보가 없어 질문에 답변할 수 없습니다. 질문에서 요청하신 '{input}'에 대한 정보를 찾을 수 없거나, 주어진 문맥이 부족합니다. 추가적인 정보나 더 구체적인 자료를 제공해 주시면 도움이 될 수 있습니다."
             I'm going to tip $200 for a perfect answer within Korean!
@@ -377,7 +380,9 @@ def summary_prompt_template():
         
             #Question:
             {input}
-        
+            
+            Ensure that:
+            - 정보가 있다 하더라도 기독교 외 타 종교가 포함된 모든 질문은 답변을 제공하지 않아야 해.
             If the #Context section is empty or does not contain relevant information, respond with: "제공된 정보가 없어 질문에 답변할 수 없습니다."
             I'm going to tip $200 for a perfect answer within Korean!
         
@@ -386,6 +391,27 @@ def summary_prompt_template():
         )]
     )
 
+
+
+def check_recent_or_global_prompt(query: str):
+    return (
+            f"""
+            You are an assistant that classifies questions into two categories: 
+            - 'recent' if the input suggests interest in recent events (within 1-2 years) based on keywords like "최근", "요즘", "최근 몇 년", etc.
+            - 'global' if the input suggests interest in long-term or broader events (2 years or more) or lacks recent-specific keywords.
+            
+            Your job is to read the input and classify it strictly into one of these two categories:
+            - If the input includes keywords like "최근", "요즘", or similar, classify it as 'recent'.
+            - Otherwise, classify it as 'global'.
+            
+            Respond only with:
+            - **recent**
+            - **global**
+            
+            Input: 
+            {query}
+            """
+    )
 
 def jounarlist_prompt_template():
     return (
@@ -402,7 +428,7 @@ def jounarlist_prompt_template():
             3. **Source Management**: \
                - Reference sources sequentially using square brackets, starting from [1], and ensure all referenced sources appear at least once in the answer. \
                - Limit references to a maximum of 10 unique sources, prioritizing the most relevant if there are more than 10. \
-               - At the end of the answer, include a Sources list containing unique document IDs in their order of first appearance, without square brackets (e.g., [95500-0, 71715-0]). \
+               - At the end of the answer, include a Sources list containing unique document IDs in their order of first appearance, without square brackets (e.g., [95500, 71715]). \
             4. **When Context Is Insufficient**: \
                - If the context does not contain relevant information, state clearly: '제공된 정보가 없어 질문에 답변할 수 없습니다.' \
                - Do not speculate; base your answers strictly on the provided context. \
@@ -429,8 +455,9 @@ def jounarlist_prompt_template():
                  - **If the journalist does not exist in the context:** Must provide, "[Name] 기자에 대한 정보가 없습니다."
         
             2. Follow the answer format strictly:
-               - Provide detailed sentence-form explanations for the question.
-               - Summarize key points concisely.
+                - Provide clear and concise summary explanations.
+                - Highlight diverse aspects of the journalist’s work by referring to up to **10 unique sources**.
+                - Ensure the response integrates **varied and meaningful details** across the referenced documents.
         
             # Context: 
             {context}
@@ -448,14 +475,14 @@ def jounarlist_prompt_template():
             - If the same source is referenced multiple times in the answer, the bracketed number remains the same for all references.
             - Each referenced source number (e.g., [1], [2], [3]) must directly follow the relevant sentence.
             - At the end of the answer, only list **unique document IDs** in the Sources list in their first appearance order.
-            - Never include bracketed numbers like [1], [2] in the Sources list. The list should only contain IDs (e.g., [95500-0, 71715-0, 50846-1]).
+            - Never include bracketed numbers like [1], [2] in the Sources list. The list should only contain IDs (e.g., [95500, 71715, 50846]).
         
             Ensure that:
             - The Sources list always contains actual document IDs, and never numbers like [1], [2], etc.
             - The final Sources list follows the exact sequence of their first appearance in the answer.
             - Every referenced source number appears explicitly in the answer text.
         
-            The answer format with source brackets:
+            The answer format: (Please focus on a **summary-oriented response** while referencing up to 10 unique sources.)
             - Provide a detail sentence-based explanation about question.
             ### 주요 취재 분야
             (Explain each journalist: List numerical points with descriptions for each. Include source brackets like after finishing sentence. [1], [2])
@@ -469,7 +496,9 @@ def jounarlist_prompt_template():
             # Question: 
             {input}
         
-            If the #Context section is empty or does not contain relevant information, respond with: "제공된 정보가 없어 질문에 답변할 수 없습니다."
+            Ensure that:
+            - 정보가 있다 하더라도 기독교 외 타 종교가 포함된 모든 질문은 답변을 제공하지 않아야 해.
+            If the Context section is empty or does not contain relevant information, respond with: "제공된 정보가 없어 질문에 답변할 수 없습니다."
             If the answer or the person cannot be checked from the provided context, just say you don't know about question information.
             Make sure your answer utilizes up to the maximum token limit ({MAX_TOKENS} tokens), remaining concise and relevant.
             I'm going to tip $200 for a perfect answer within Korean!

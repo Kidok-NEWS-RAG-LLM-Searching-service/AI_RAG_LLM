@@ -52,7 +52,9 @@ class CustomPineconeVectorStore(VectorStore):
             setting: Optional[str] = None,
     ) -> list[Document] | list[tuple[Document, Any]]:
         """Return pinecone documents most similar to embedding, along with scores."""
-
+        print('similarity_search_by_vector_with_score')
+        print('filter: ', filter)
+        print('k: ', k)
         # # `_text_key`를 안전하게 가져오기
         text_keys = getattr(self.base_store, "_text_key", [])
         if isinstance(text_keys, str):
@@ -60,13 +62,24 @@ class CustomPineconeVectorStore(VectorStore):
         if namespace is None:
             namespace = self._namespace
         docs = []
-        results = self._index.query(
-            vector=embedding,
+        if setting == 'None':
+            print('setting is None')
+            results = self._index.query(
+            vector=[0]*4096,
             top_k=k,
             include_metadata=True,
             namespace=namespace,
             filter=filter,
         )
+        else:
+            results = self._index.query(
+                vector=embedding,
+                top_k=k,
+                include_metadata=True,
+                namespace=namespace,
+                filter=filter,
+            )
+        print(len(results["matches"]))
         for res in results["matches"]:
             metadata = res["metadata"]
             id = res.get("id")
