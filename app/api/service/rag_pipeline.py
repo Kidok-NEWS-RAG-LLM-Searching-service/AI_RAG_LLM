@@ -151,12 +151,14 @@ class RagPipeline:
         if type == 'recent':
             date = datetime.now().year-1
             setting = 'no_query_embedding'
+            decay_rate=-0.01
         else:
             date = 1900
             setting = 'original'
+            decay_rate=0.000_000_1
         return TimeWeightedJounaralistFilteringVectorStoreRetriever(
             vectorstore=self.jounaralist_customize_vectorstore,
-            decay_rate=0.000_000_1,  # 0.000_000_1
+            decay_rate=decay_rate,
             k=20,  # 반환할 최대 문서 개수
             search_kwargs={
                 'name_list': name_list,
@@ -213,7 +215,7 @@ class RagPipeline:
             model=model,
             messages=[
                 {"role": "system", "content": prompts.date_cal_prompt_system()},
-                {"role": "user", "content": prompts.date_cal_prompt_user(query=query)}]
+                {"role": "user", "content": prompts.date_cal_prompt_user_3(query=query)}]
         )
 
         return response.choices[0].message.content
@@ -285,17 +287,27 @@ class RagPipeline:
 
     # 날짜를 계산하는 LLM 함수
     def date_cal(self, query: str) -> list:
+        import json
+        
         llm_output = self.date_cal_llm(query=query)
+        
         if "start_date" and "end_date" not in llm_output:
             print('No data: start_date or end_date')
+            print('llm_output: ', llm_output)
             return []
 
         else:
             try:
-                import json
-                cleaned_output = llm_output.strip("```json\n").strip("\n```").strip()
-                cleaned_output = re.sub(r",\s*\]", "]", cleaned_output)
-                outputs = json.loads(cleaned_output)
+                json_match = re.search(r"\[\s*\{.*?\}\s*\]", llm_output, re.DOTALL)
+                if json_match:
+                    cleaned_output = json_match.group()
+                    outputs = json.loads(cleaned_output)
+                else:
+                    print("No valid JSON found in the output.")
+                    return []
+                # cleaned_output = llm_output.strip("```json\n").strip("\n```").strip()
+                # cleaned_output = re.sub(r",\s*\]", "]", cleaned_output)
+                # outputs = json.loads(cleaned_output)
                 print(outputs)
                 date_list = []
                 for output in outputs:

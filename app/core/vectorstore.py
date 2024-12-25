@@ -46,6 +46,7 @@ class CustomPineconeVectorStore(VectorStore):
         summary_docs = docs.copy()
         for doc in summary_docs:
             doc[0].page_content = doc[0].page_content.split(" <Content>:")[0]
+        print('summary_docs: ', len(summary_docs))
         return [doc for doc, score in summary_docs]
         # return summary_docs
 
@@ -56,7 +57,7 @@ class CustomPineconeVectorStore(VectorStore):
             k: int = 4,
             filter: Optional[dict] = None,
             namespace: Optional[str] = None,
-            setting: Optional[str] = None,
+            setting: Optional[str] = "None",
             search_type: Optional[str] = 'similarity',
             score_threshold: Optional[float] = 0,
             **kwargs: Any

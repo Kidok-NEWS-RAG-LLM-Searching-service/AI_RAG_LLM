@@ -127,7 +127,7 @@ def date_cal_prompt_user(query:str):
         2. If the query mentions a specific month (e.g., "3월") without a year:
         - Assume the current year and provide the start date as the first day of the month and the end date as the last day of the month.
 
-        3. If the query mentions a specific year (e.g., "20년도" or "2020년"):
+        3. If the query mentions a specific year (e.g., "20년도" or "2023년", "올해"):
         - Provide the start date as the first day of the specified year and the end date as the last day of the specified year.
 
         4. If the query uses abstract terms like "최신" or "최근":
@@ -151,6 +151,85 @@ def date_cal_prompt_user(query:str):
 
         "query":
         {query}
+        """
+    )
+
+def date_cal_prompt_user_2(query:str):
+    return (
+        f"""
+        You are a highly intelligent assistant skilled in interpreting time-based queries. Your task is to analyze the given query and determine the appropriate time period (start_date and end_date) based on the following rules:
+
+        current time: {datetime.now().strftime("%Y-%m-%d")}
+
+        1. If the query mentions a specific time frame such as "지난주" or "이번주(금주)":
+        - 지난주: Provide the start and end dates of the previous week (Sunday to Saturday).
+        - 이번주: Provide the start date as the most recent Sunday and the end date as yesterday.
+
+        2. If the query mentions a specific month (e.g., "3월"), assume the current year.
+        3. If the query mentions a specific year (e.g., "24년", "99년도", "14년", "2023년", "올해"), provide the full year.
+        4. For abstract terms like "최신" or "최근", define the time frame as the past two weeks (14 days).
+        5. For all other cases where an exact time frame cannot be determined, respond with "The query does not specify a valid time frame."
+
+        Provide the result in format without any other text:
+        [
+            {{
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD"        
+            }},
+            {{
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD"        
+            }}
+        ]
+
+        query:
+        "{query}"
+        """
+    )
+    
+def date_cal_prompt_user_3(query: str):
+    return (
+        f"""
+        You are a highly intelligent assistant skilled in understanding and interpreting time-related queries written in Korean. Your task is to analyze the given query and convert any natural language date expressions into exact date ranges (start_date and end_date). Use the following rules to interpret the query:
+
+        Current time: {datetime.now().strftime("%Y-%m-%d")}
+
+        ### Rules for interpreting the query:
+        1. Recognize and interpret natural language expressions of time in Korean, such as:
+           - Relative days: Examples include "어제", "오늘", "내일".
+           - Relative weeks: Examples include "지난주", "이번주", "다음주".
+           - Relative months: Examples include "지난달", "이번달", "다음달".
+           - Specific months: Examples include "1월", "12월".
+           - Specific years: Examples include "2023년", "작년", "내년", "24년", "99년도", "14년", "올해".
+           - General periods: Examples include "최근", "최신", "금년".
+
+        2. Convert all recognized expressions into exact date ranges:
+           - For single-day expressions (e.g., "어제", "오늘"), the start_date and end_date should be the same.
+           - For week-based expressions (e.g., "지난주"), calculate the exact start and end dates of the specified week.
+           - For month-based expressions (e.g., "12월"), calculate the first and last day of the specified month.
+           - For year-based expressions (e.g., "2023년"), calculate the first and last day of the specified year.
+           - For general terms like "최근", interpret as the last 14 days from today.
+
+        3. Exclude today's date unless explicitly mentioned in the query.
+
+        4. If the query cannot be interpreted into a valid date range, respond with:
+           "The query does not specify a valid time frame."
+
+        ### Output Format
+        Provide the result with the following format without any other text:
+        [
+            {{
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD"
+            }},
+            {{
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD"
+            }}
+        ]
+
+        Query:
+        "{query}"
         """
     )
 
@@ -498,7 +577,8 @@ def jounarlist_prompt_template():
         
             Ensure that:
             - 정보가 있다 하더라도 기독교 외 타 종교가 포함된 모든 질문은 답변을 제공하지 않아야 해.
-            If the Context section is empty or does not contain relevant information, respond with: "제공된 정보가 없어 질문에 답변할 수 없습니다."
+            If the Context section is empty, respond with: "제공된 정보가 없어 질문에 답변할 수 없습니다."
+            If the Question asked about "최근" or "요즘" or "최근 몇 년", respond summary context and answer with format.
             If the answer or the person cannot be checked from the provided context, just say you don't know about question information.
             Make sure your answer utilizes up to the maximum token limit ({MAX_TOKENS} tokens), remaining concise and relevant.
             I'm going to tip $200 for a perfect answer within Korean!

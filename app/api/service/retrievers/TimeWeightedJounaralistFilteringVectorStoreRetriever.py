@@ -104,6 +104,7 @@ class TimeWeightedJounaralistFilteringVectorStoreRetriever(CustomVectorStoreRetr
             # Step 2: Rescore documents (combine vector relevance and time scores)
             rescored_docs = self._get_rescored_docs(docs_and_scores)
 
+            print('rescored_docs: ', len(rescored_docs))
             # page_content에서 요약했던 contextual 부분만 가져오기
             # summary_docs = self._get_summary_docs(rescored_docs)
             merger.add_list(rescored_docs)
