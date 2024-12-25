@@ -207,7 +207,7 @@ def date_cal_prompt_user_3(query: str):
            - For single-day expressions (e.g., "어제", "오늘"), the start_date and end_date should be the same.
            - For week-based expressions (e.g., "지난주"), calculate the exact start and end dates of the specified week.
            - For month-based expressions (e.g., "12월"), calculate the first and last day of the specified month.
-           - For year-based expressions (e.g., "2023년"), calculate the first and last day of the specified year.
+           - For year-based expressions (e.g., "2023년", "작년", "내년", "24년", "99년도", "14년", "올해"), calculate the first and last day of the specified year.
            - For general terms like "최근", interpret as the last 14 days from today.
 
         3. Exclude today's date unless explicitly mentioned in the query.

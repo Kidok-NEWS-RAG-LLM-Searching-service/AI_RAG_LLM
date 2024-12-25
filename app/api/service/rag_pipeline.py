@@ -5,6 +5,7 @@ import json
 import re
 from functools import wraps
 import time
+import numpy as np
 
 import pandas as pd
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -28,6 +29,8 @@ from app.core.config import settings
 
 from typing import AsyncGenerator
 
+# from app.core.init_method import KiwiBM25Tokenizer
+from app.api.service.encoders.encoders import KiwiBM25Tokenizer
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -54,6 +57,8 @@ class RagPipeline:
             self.hybird_retriever, 
             self.question_answer_chain
         )
+        self.tokenizer = KiwiBM25Tokenizer()
+        
 
     stop_words_manager = StopwordsManager()
     ai_model_manager = AIModelManager()
@@ -64,6 +69,7 @@ class RagPipeline:
 
     # sparse_encoder_path = os.path.join("./app/news_rag_llm/yong_contextual_sparse_encoder.pkl")
     sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl")
+    # sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_10000_20000.pkl")
     global_source_set = set()
 
     if not os.path.exists(sparse_encoder_path):
@@ -82,6 +88,7 @@ class RagPipeline:
     pinecone_index_initializer = PineconeIndexInitializer(
         # sparse_encoder_path="./app/news_rag_llm/yong_contextual_sparse_encoder.pkl",
         sparse_encoder_path="./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl",
+        # sparse_encoder_path="./app/sparse_encoder_folder/sparse_encoder_10000_20000.pkl",
         stopwords=stop_words_manager.fetch_stopwords(),  # 불용어 사전
         tokenizer="kiwi",
         embeddings=embeddings,
@@ -247,7 +254,6 @@ class RagPipeline:
 
         
     def timer(func):
-
         @wraps(func)
         def wrapper(*args, **kwargs):
             start_time = time.time()
@@ -344,8 +350,7 @@ class RagPipeline:
             start_date = datetime.strptime(self.session_period[session - 1]["start_date"], "%Y-%m-%d")
             end_date = datetime.strptime(self.session_period[session - 1]["end_date"], "%Y-%m-%d")
 
-            print('start date: ', start_date)
-            print('end date: ', end_date)
+            print(f"['start date': '{start_date}', 'end date': '{end_date}']")
 
             current_date = start_date
             while current_date <= end_date:
@@ -406,7 +411,7 @@ class RagPipeline:
         # Extract sources list
         # print('makeing_source len(result): ', len(result['context']))
         sources_list =  self.extract_sources(result['answer'])
-        print(sources_list)
+        print(f'origin sources_list({len(sources_list)})개: {sources_list} ')
         # Initialize the source list
         source = [0] * len(sources_list)
         # Iterate over the context and populate the source list
@@ -425,8 +430,11 @@ class RagPipeline:
                         "date": f"{meta['init_date']} {meta['init_timestamp'][:-3]}",
                         "journalist_name": meta['journalist_name']
                     }
+                    sources_list[ind] = 'PASS'
                     # print(source[ind])
-        # print(source)
+
+        print(f'Check Halucinated sources: {sources_list}')
+        print('*'*60)
         return source
 
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
@@ -435,6 +443,7 @@ class RagPipeline:
         # "Sources: [...]" 패턴을 제거
         clean_answer = re.sub(r"Sources: \[.*?\]", "", result['answer'], flags=re.DOTALL)
         # 공백 정리
+        print(f'answer: {clean_answer.strip()[:30]}')
         return clean_answer.strip()
 
     def _init_question_answer_chain(self):
@@ -558,7 +567,9 @@ class RagPipeline:
     
     @timer
     def query_model_pipeline(self, query: str):
-        print('*'*40)
+        print('*'*60)
+        print('Search start time:',datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        print("query:",query)
         routing = {}
         routing = self.logical_routing(query)
         intent = routing.get('intent')
@@ -608,7 +619,7 @@ class RagPipeline:
                 print('name_list: ', name_list)
                 print("We can't get name_list. So turn to genernal Q&A")
                 return self.hybird_dense_sparse_LLM(query)
-            print(name_list)
+            print(f'Journalist name list: {name_list}')
             return self.journalist_filter_LLM(query, name_list)
 
 

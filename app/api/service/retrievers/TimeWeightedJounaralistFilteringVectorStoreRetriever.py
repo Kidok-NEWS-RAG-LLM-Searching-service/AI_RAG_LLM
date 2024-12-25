@@ -80,13 +80,13 @@ class TimeWeightedJounaralistFilteringVectorStoreRetriever(CustomVectorStoreRetr
         """Retrieve and rescore documents based on query."""
         # 사용 예제
         merger = DynamicMerger()
-        print('setting: ', self.search_kwargs.get('setting'))
+        # print('setting: ', self.search_kwargs.get('setting'))
         # print('search_kwargs: ', self.search_kwargs)
-        print('filter_section: ', self.search_kwargs.get('filter')['section'])
-        print('filter_init_year: ', self.search_kwargs.get('filter')['init_year'])
+        # print('filter_section: ', self.search_kwargs.get('filter')['section'])
+        # print('filter_init_year: ', self.search_kwargs.get('filter')['init_year'])
         rescored_docs: List[Document] = Field(default_factory=List[Document])
         for name in self.search_kwargs.get('name_list', []):
-            print('name: ', name)
+            # print('name: ', name)
             docs_and_scores = CustomVectorStoreRetriever(
                 vectorstore=self.vectorstore,
             )._get_relevant_documents(
@@ -104,7 +104,7 @@ class TimeWeightedJounaralistFilteringVectorStoreRetriever(CustomVectorStoreRetr
             # Step 2: Rescore documents (combine vector relevance and time scores)
             rescored_docs = self._get_rescored_docs(docs_and_scores)
 
-            print('rescored_docs: ', len(rescored_docs))
+            # print('rescored_docs: ', len(rescored_docs))
             # page_content에서 요약했던 contextual 부분만 가져오기
             # summary_docs = self._get_summary_docs(rescored_docs)
             merger.add_list(rescored_docs)

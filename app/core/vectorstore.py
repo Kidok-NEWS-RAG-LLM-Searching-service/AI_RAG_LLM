@@ -46,7 +46,7 @@ class CustomPineconeVectorStore(VectorStore):
         summary_docs = docs.copy()
         for doc in summary_docs:
             doc[0].page_content = doc[0].page_content.split(" <Content>:")[0]
-        print('summary_docs: ', len(summary_docs))
+        # print('summary_docs: ', len(summary_docs))
         return [doc for doc, score in summary_docs]
         # return summary_docs
 
@@ -64,7 +64,7 @@ class CustomPineconeVectorStore(VectorStore):
     ) -> list[Document] | list[tuple[Document, Any]]:
         """Return pinecone documents most similar to embedding, along with scores."""
         # print('start similarity_search_by_vector_with_score')
-        print('k: ', k)
+        # print('k: ', k)
         # print('filter: ', filter)
         # print('namespace: ', namespace)
         # print('setting: ', setting)
@@ -120,13 +120,13 @@ class CustomPineconeVectorStore(VectorStore):
                     f"Found document with no `{self._text_key}` key. Skipping."
                 )
 
-        print('search_type: ', search_type)
-        print('setting: ', setting)
+        # print('search_type: ', search_type)
+        # print('setting: ', setting)
         if 'summary' in setting:
             # 요약 모델일때는 요약만 가져오기
             return self._get_summary_docs(docs)
         elif setting == 'time_weighted':
-            print('ready filtered_docs')
+            # print('ready filtered_docs')
             return [
                 (doc, similarity) for doc, similarity in docs
                 if similarity >= score_threshold
