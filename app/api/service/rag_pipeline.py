@@ -117,7 +117,7 @@ class RagPipeline:
                 'search_type': 'similarity_score_threshold',
                 'score_threshold': 0.319,  # 0과 1 사이의 값 설정
                 'filter': {'section': {'$nin': ['기독AD']}},
-                'type': 'time_weighted'
+                'setting': 'time_weighted'
             }
         )
 
@@ -143,7 +143,7 @@ class RagPipeline:
                     "init_date": {"$in": date_list},
                     "section": {"$nin": ['설교', '기독AD', '오피니언']}
                 },
-                'setting': 'summary'
+                'setting': "summary and no_query_embedding"
             }
         )
 
@@ -184,7 +184,7 @@ class RagPipeline:
         
     def hybird_dense_sparse_retriever(self):
         pinecone_params = self._init_pinecone_index()
-        return NewPineconeKiwiHybridRetriever(**pinecone_params, search_kwargs={'filter': {'section': {'$nin': ['기독AD']}}})
+        return NewPineconeKiwiHybridRetriever(**pinecone_params)
 
 
     prompt = ChatPromptTemplate.from_template(AIModelManager.get_custom_prompt_template_v2())
@@ -251,7 +251,7 @@ class RagPipeline:
             start_time = time.time()
             result = func(*args, **kwargs)
             end_time = time.time()
-            print(f"{func.__name__} 실행 시간: {end_time - start_time:.2f}초")
+            print(f" | {func.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
             return result
         return wrapper
 
@@ -260,7 +260,7 @@ class RagPipeline:
         """
         Route the query based on the intent identified by the LLM.
         """
-        print('start query routing')
+        # print('start query routing')
 
         intent_response = self.query_llm(query=query)
 
@@ -280,7 +280,7 @@ class RagPipeline:
         else:
             intent = "General Q&A Retrieval"
 
-        print('finish query routing')
+        # print('finish query routing')
         return {"intent": intent, "llm_response": intent_response}
 
     # 날짜를 계산하는 LLM 함수
@@ -294,6 +294,7 @@ class RagPipeline:
             try:
                 import json
                 cleaned_output = llm_output.strip("```json\n").strip("\n```").strip()
+                cleaned_output = re.sub(r",\s*\]", "]", cleaned_output)
                 outputs = json.loads(cleaned_output)
                 print(outputs)
                 date_list = []
@@ -301,8 +302,8 @@ class RagPipeline:
                     start_date = datetime.strptime(output["start_date"], "%Y-%m-%d")
                     end_date = datetime.strptime(output["end_date"], "%Y-%m-%d")
 
-                    print('start date: ', start_date)
-                    print('end date: ', end_date)
+                    # print('start date: ', start_date)
+                    # print('end date: ', end_date)
 
                     current_date = start_date
                     while current_date <= end_date:
@@ -389,28 +390,6 @@ class RagPipeline:
             return answer_text.split("Sources: [")[-1].rstrip("]").split(", ")
         return []
 
-    # LLM 최종 답변 중 source 추출 함수
-    # def makeing_source(self, result):
-    #     # Extract sources list
-    #     sources_list = self.extract_sources(result['answer'])
-    #     print(sources_list)
-    #     # Create a mapping for sources to their index
-    #     sources_index = {doc_id: idx for idx, doc_id in enumerate(sources_list)}
-    #     # Initialize the source list
-    #     source = [0] * len(sources_list)
-    #     # Iterate over the context and populate the source list
-    #     for doc in result.get('context', []):
-    #         if doc.id[:-2] in sources_index:
-    #             # print(doc.id)
-    #             idx = sources_index[doc.id[:-2]]
-    #             meta = doc.metadata
-    #             source[idx] = (
-    #                 f"source: {meta['source']}, title: {meta['title']}, "
-    #                 f"section: {meta['primary_section']}, {meta['init_date']} "
-    #                 f"{meta['init_timestamp']} {meta['journalist_name']}"
-    #             )
-    #     return source
-    
     def makeing_source(self, result):
         # Extract sources list
         # print('makeing_source len(result): ', len(result['context']))
@@ -454,25 +433,65 @@ class RagPipeline:
     @timer
     def timeweighted_LLM(self, query: str) -> dict:
         # 체인 실행
-        result = self.timeweighted_rag_chain.invoke({
+            # retriever에 직접 search_kwargs 설정
+        docs = self.hybird_retriever.invoke(
+            query,
+            search_kwargs={
+                'filter': {
+                    'section': {'$nin': ['기독AD']}, 
+                    'init_year': {'$gte': datetime.now().year-2}
+                }
+            }
+        )
+            # 검색된 문서로 chain 실행
+        result = self.question_answer_chain.invoke({
             "input": query,
+            "context": docs,  # 검색된 문서 전달
             "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
             "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
         })
-
-        return result
+        
+        # result = self.timeweighted_rag_chain.invoke({
+        #     "input": query,
+        #     "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
+        #     "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
+        # })
+        return {
+            "input": query,
+            "answer": result,  # result가 dict 형태로 반환되므로
+            "context": docs
+        }
 
     @timer
     def hybird_dense_sparse_LLM(self, query: str) -> dict:
-        result = self.hybrid_rag_chain.invoke(
-            {
-                "input": query,
-                "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
-                "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
+        docs = self.hybird_retriever.invoke(
+            query,
+            search_kwargs={
+                'filter': {
+                    'section': {'$nin': ['기독AD']}, 
+                }
             }
         )
+        # 검색된 문서로 chain 실행
+        result = self.question_answer_chain.invoke({
+            "input": query,
+            "context": docs,  # 검색된 문서 전달
+            "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
+            "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
+        })
+        # result = self.hybrid_rag_chain.invoke(
+        #     {
+        #         "input": query,
+        #         "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
+        #         "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
+        #     }
+        # )
 
-        return result
+        return {
+            "input": query,
+            "answer": result,  # result가 dict 형태로 반환되므로
+            "context": docs
+        }
 
     @timer
     def date_filter_LLM(self, query: str, date_list: list) -> dict:
@@ -527,21 +546,21 @@ class RagPipeline:
     
     @timer
     def query_model_pipeline(self, query: str):
-
+        print('*'*40)
         routing = {}
         routing = self.logical_routing(query)
         intent = routing.get('intent')
 
         if "Time-Weighted Entity Retrieval" in intent:
-            print("time-weighted")
+            print("----------- MODLE: TIME-WEIGHTED -----------")
             return self.timeweighted_LLM(query)
 
         elif "General Q&A Retrieval" in intent:
-            print("General Q&A")
+            print("----------- MODLE: GENERAL Q&A -----------")
             return self.hybird_dense_sparse_LLM(query)
 
         elif "Session" in intent:
-            print("session filtering")
+            print("----------- MODLE: SESSION -----------")
             sessions = self.extract_session_numbers(query)
             if not sessions:
                 print("We can't get sessions. so trun to general Q&A")
@@ -551,7 +570,7 @@ class RagPipeline:
             return self.date_filter_LLM(query, self.session_to_date_list(sessions))
 
         elif "Date" in intent:
-            print("Date filtering")
+            print("----------- MODLE: DATE FILTERING -----------")
             date_list = self.date_cal(query)
             if not date_list:
                 print('date_list: ', date_list)
@@ -561,7 +580,7 @@ class RagPipeline:
             return self.date_filter_LLM(query, date_list)
 
         elif "Time-Based News Summarization" in intent:
-            print("News Summarization")
+            print("----------- MODLE: NEWS SUMMARIZATION -----------")
             date_list = self.date_cal(query)
             if not date_list:
                 print('date_list: ', date_list)
@@ -571,7 +590,7 @@ class RagPipeline:
             return self.summary_filter_LLM(query, date_list)
 
         elif "Journalist-Related Query" in intent:
-            print("Journalist-Related Query")
+            print("----------- MODLE: JOURNALIST-RELATED QUERY -----------")
             name_list = self.extract_journalist_names(query)
             if not name_list:
                 print('name_list: ', name_list)

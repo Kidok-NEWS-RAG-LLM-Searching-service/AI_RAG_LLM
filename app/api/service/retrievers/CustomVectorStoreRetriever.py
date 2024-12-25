@@ -7,7 +7,7 @@ from langchain_core.documents import Document
 class CustomVectorStoreRetriever(VectorStoreRetriever):
     def _get_relevant_documents(self, query: str, **kwargs: object) -> List[Tuple[Document, float]]:
         """Customize how relevant documents are retrieved."""
-        print("Custom retriever is being used.")
+        # print("Custom retriever is being used.")
         # search_type = kwargs.pop("search_type", "similarity")
         # print('search_type: ', self.search_type)
         # if search_type:

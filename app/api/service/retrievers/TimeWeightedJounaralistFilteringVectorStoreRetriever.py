@@ -81,7 +81,7 @@ class TimeWeightedJounaralistFilteringVectorStoreRetriever(CustomVectorStoreRetr
         # 사용 예제
         merger = DynamicMerger()
         print('setting: ', self.search_kwargs.get('setting'))
-        print('search_kwargs: ', self.search_kwargs)
+        # print('search_kwargs: ', self.search_kwargs)
         print('filter_section: ', self.search_kwargs.get('filter')['section'])
         print('filter_init_year: ', self.search_kwargs.get('filter')['init_year'])
         rescored_docs: List[Document] = Field(default_factory=List[Document])
@@ -99,7 +99,7 @@ class TimeWeightedJounaralistFilteringVectorStoreRetriever(CustomVectorStoreRetr
                 k=self.k,
                 setting=self.search_kwargs.get('setting')
             )
-            print('len(docs): ', len(docs_and_scores))
+            # print('len(docs): ', len(docs_and_scores))
 
             # Step 2: Rescore documents (combine vector relevance and time scores)
             rescored_docs = self._get_rescored_docs(docs_and_scores)
