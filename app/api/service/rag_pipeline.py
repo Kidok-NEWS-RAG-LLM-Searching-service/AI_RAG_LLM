@@ -26,22 +26,35 @@ from app.core import prompts
 from app.core.init_method import InitVectorStore
 from app.core.vectorstore import CustomPineconeVectorStore
 from app.core.config import settings
+from app.core.tokenizer import KiwiBM25Tokenizer
 
 from typing import AsyncGenerator
 
-# from app.core.init_method import KiwiBM25Tokenizer
-from app.api.service.encoders.encoders import KiwiBM25Tokenizer
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class RagPipeline:
+    ai_model_manager = AIModelManager()
+    
+    summary_prompt = ChatPromptTemplate.from_messages(prompts.summary_prompt_template())
+    journalist_prompt = ChatPromptTemplate.from_messages(prompts.jounarlist_prompt_template())
+    init_vectorstore = InitVectorStore()
+
     def __init__(self):
+      
+        self.llm = self.ai_model_manager.llm
+        self.embeddings = self.ai_model_manager.embeddings
+        self.client = self.ai_model_manager.client   
+        
+        self.vectorstore = self.init_vectorstore.init_pinecone_vectorstore()
+        self.add_jounaralist_name_customize_vectorstore = self.init_vectorstore.init_customize_vectorstore()
+        
+        self.custom_vectorstore = CustomPineconeVectorStore(base_store=self.vectorstore)
+        self.jounaralist_customize_vectorstore = CustomPineconeVectorStore(base_store=self.add_jounaralist_name_customize_vectorstore)
+                
         self.timeweighted_retriever = self._init_timeweighted_retriever()
         self.hybird_retriever = self.hybird_dense_sparse_retriever()
-        # 미리 프롬프트 템플릿들 초기화
-        self.summary_prompt = ChatPromptTemplate.from_messages(prompts.summary_prompt_template())
-        self.journalist_prompt = ChatPromptTemplate.from_messages(prompts.jounarlist_prompt_template())
         
         # 기본 체인들 미리 생성
         self.summary_chain = create_stuff_documents_chain(self.llm, self.summary_prompt)
@@ -57,62 +70,94 @@ class RagPipeline:
             self.hybird_retriever, 
             self.question_answer_chain
         )
-        self.tokenizer = KiwiBM25Tokenizer()
+        
         
 
-    stop_words_manager = StopwordsManager()
-    ai_model_manager = AIModelManager()
+    # stop_words_manager = StopwordsManager()
 
-    llm = ai_model_manager.llm
-    embeddings = ai_model_manager.embeddings
-    client = ai_model_manager.client
+
 
     # sparse_encoder_path = os.path.join("./app/news_rag_llm/yong_contextual_sparse_encoder.pkl")
     sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl")
     # sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_10000_20000.pkl")
     global_source_set = set()
 
-    if not os.path.exists(sparse_encoder_path):
-        print(f"{sparse_encoder_path} not found. Creating sparse encoder...")
-        contextual_chunks_df = pd.read_parquet("./app/assets/contents_1_80000.parquet", engine="pyarrow")
-        sparse_encoder_value = sparse_encoder.create_sparse_encoder(
-            stop_words_manager.fetch_stopwords(), mode="kiwi"
-        )
-        saved_path = sparse_encoder.fit(
-            bm25_encoder=sparse_encoder_value,
-            contents=contextual_chunks_df.contexts.tolist(),
-            save_path=sparse_encoder_path
-        )
-        print(f"Sparse encoder saved at: {saved_path}")
+    # if not os.path.exists(sparse_encoder_path):
+    #     print(f"{sparse_encoder_path} not found. Creating sparse encoder...")
+    #     contextual_chunks_df = pd.read_parquet("./app/assets/contents_1_80000.parquet", engine="pyarrow")
+    #     sparse_encoder_value = sparse_encoder.create_sparse_encoder(
+    #         stop_words_manager.fetch_stopwords(), mode="kiwi"
+    #     )
+    #     saved_path = sparse_encoder.fit(
+    #         bm25_encoder=sparse_encoder_value,
+    #         contents=contextual_chunks_df.contexts.tolist(),
+    #         save_path=sparse_encoder_path
+    #     )
+    #     print(f"Sparse encoder saved at: {saved_path}")
 
-    pinecone_index_initializer = PineconeIndexInitializer(
-        # sparse_encoder_path="./app/news_rag_llm/yong_contextual_sparse_encoder.pkl",
-        sparse_encoder_path="./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl",
-        # sparse_encoder_path="./app/sparse_encoder_folder/sparse_encoder_10000_20000.pkl",
-        stopwords=stop_words_manager.fetch_stopwords(),  # 불용어 사전
+    # pinecone_index_initializer = PineconeIndexInitializer(
+    #     # sparse_encoder_path="./app/news_rag_llm/yong_contextual_sparse_encoder.pkl",
+    #     # sparse_encoder_path="./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl",
+    #     sparse_encoder_path="./app/sparse_encoder_folder/sparse_encoder_10000_20000.pkl",
+    #     stopwords=stop_words_manager.fetch_stopwords(),  # 불용어 사전
+    #     tokenizer="kiwi",
+    #     embeddings=embeddings,
+    #     top_k=20,
+    #     alpha=0.5,
+    # )
+
+    # init_data = pinecone_index_initializer.get_pinecone_init_data()
+
+    # pinecone_retriever = PineconeKiwiHybridRetriever(
+    #     embeddings=init_data["embeddings"],
+    #     sparse_encoder=init_data["sparse_encoder"],
+    #     index=init_data["index"],
+    #     top_k=init_data["top_k"],
+    #     alpha=init_data["alpha"],
+    #     namespace=init_data["namespace"]
+    # )
+
+
+
+    def _init_pinecone_index(self):
+        index_params = self.init_vectorstore.init_pinecone_index(
+        index_name=settings.pinecone_index_name,
+        namespace="",
+        api_key=settings.pinecone_api_key,
+        sparse_encoder_path=self.sparse_encoder_path,
+        stopwords=self.init_vectorstore.stopwords(),
         tokenizer="kiwi",
-        embeddings=embeddings,
+        embeddings=self.embeddings,
         top_k=20,
-        alpha=0.5,
-    )
+        alpha=.3,
+        )
+        
+        # 필수 파라미터들이 있는지 확인
+        required_params = {
+            "embeddings": self.embeddings,
+            "sparse_encoder": index_params.get("sparse_encoder"),
+            "index": index_params.get("index"),
+            "top_k": 20,
+            "alpha": 0.3,
+            "namespace": ""
+        }
+        # return InitVectorStore.init_pinecone_index(
+        #     index_name=settings.pinecone_index_name,  # Pinecone 인덱스 이름
+        #     namespace="",  # Pinecone Namespace
+        #     api_key= settings.pinecone_api_key,  # Pinecone API Key
+        #     sparse_encoder_path=self.sparse_encoder_path,  # Sparse Encoder 저장경로(save_path)
+        #     stopwords=InitVectorStore.stopwords(),  # 불용어 사전
+        #     tokenizer="kiwi",
+        #     embeddings=self.embeddings,  # Dense Embedder
+        #     top_k=20,  # Top-K 문서 반환 개수
+        #     alpha=.3,  # alpha=0.75로 설정한 경우, (0.75: Dense Embedding, 0.25: Sparse Embedding)
+        # )    
+        return required_params
+        
+    def hybird_dense_sparse_retriever(self):
+        pinecone_params = self._init_pinecone_index()
+        return NewPineconeKiwiHybridRetriever(**pinecone_params)
 
-    init_data = pinecone_index_initializer.get_pinecone_init_data()
-
-    pinecone_retriever = PineconeKiwiHybridRetriever(
-        embeddings=init_data["embeddings"],
-        sparse_encoder=init_data["sparse_encoder"],
-        index=init_data["index"],
-        top_k=init_data["top_k"],
-        alpha=init_data["alpha"],
-        namespace=init_data["namespace"]
-    )
-
-    init_vectorstore = InitVectorStore()
-    vectorstore = init_vectorstore.init_pinecone_vectorstore()
-    add_jounaralist_name_customize_vectorstore = init_vectorstore.init_customize_vectorstore()
-
-    custom_vectorstore = CustomPineconeVectorStore(base_store=vectorstore)
-    jounaralist_customize_vectorstore = CustomPineconeVectorStore(base_store=add_jounaralist_name_customize_vectorstore)
 
     def _init_timeweighted_retriever(self):
         # Retriever 초기화
@@ -177,28 +222,11 @@ class RagPipeline:
                 'setting': setting
             }
         )
-        
-    def _init_pinecone_index(self):
-        return InitVectorStore.init_pinecone_index(
-            index_name=settings.pinecone_index_name,  # Pinecone 인덱스 이름
-            namespace="",  # Pinecone Namespace
-            api_key= settings.pinecone_api_key,  # Pinecone API Key
-            sparse_encoder_path=self.sparse_encoder_path,  # Sparse Encoder 저장경로(save_path)
-            stopwords=InitVectorStore.stopwords(),  # 불용어 사전
-            tokenizer="kiwi",
-            embeddings=self.embeddings,  # Dense Embedder
-            top_k=20,  # Top-K 문서 반환 개수
-            alpha=.3,  # alpha=0.75로 설정한 경우, (0.75: Dense Embedding, 0.25: Sparse Embedding)
-        )    
-        
-    def hybird_dense_sparse_retriever(self):
-        pinecone_params = self._init_pinecone_index()
-        return NewPineconeKiwiHybridRetriever(**pinecone_params)
 
 
-    prompt = ChatPromptTemplate.from_template(AIModelManager.get_custom_prompt_template_v2())
-    question_answer_chain = create_stuff_documents_chain(llm, prompt)
-    rag_chain = create_retrieval_chain(pinecone_retriever, question_answer_chain)
+    # prompt = ChatPromptTemplate.from_template(AIModelManager.get_custom_prompt_template_v2())
+    # question_answer_chain = create_stuff_documents_chain(llm, prompt)
+    # rag_chain = create_retrieval_chain(pinecone_retriever, question_answer_chain)
 
     # query routing을 위한 LLM 호출하는 함수
     def query_llm(self, query: str, model: str = ai_model_manager.DEFAULT_LLM_MODEL) -> str:
@@ -434,7 +462,6 @@ class RagPipeline:
                     # print(source[ind])
 
         print(f'Check Halucinated sources: {sources_list}')
-        print('*'*60)
         return source
 
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
