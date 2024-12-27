@@ -55,7 +55,8 @@ class InitVectorStore:
         try:
             with open(sparse_encoder_path, "rb") as f:
                 print('start load')
-                bm25 = pickle.load(f)
+                # bm25 = pickle.load(f)
+                bm25 = CustomUnpickler(f).load()  # CustomUnpickler 사용
                 print('finish load')
             if tokenizer == "kiwi":
                 print('start tokenizer')
@@ -100,3 +101,10 @@ class InitVectorStore:
         return [word.strip() for word in stopwords]
 
         
+# 사용자 정의 클래스 로드 시 경로 문제를 해결하기 위한 클래스 재매핑
+class CustomUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if name == "KiwiBM25Tokenizer":
+            from app.core.tokenizer import KiwiBM25Tokenizer
+            return KiwiBM25Tokenizer
+        return super().find_class(module, name)

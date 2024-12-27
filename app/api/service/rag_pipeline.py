@@ -26,7 +26,6 @@ from app.core import prompts
 from app.core.init_method import InitVectorStore
 from app.core.vectorstore import CustomPineconeVectorStore
 from app.core.config import settings
-from app.core.tokenizer import KiwiBM25Tokenizer
 
 from typing import AsyncGenerator
 
@@ -78,9 +77,10 @@ class RagPipeline:
 
 
     # sparse_encoder_path = os.path.join("./app/news_rag_llm/yong_contextual_sparse_encoder.pkl")
-    sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl")
+    # sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_1_57000.pkl")
     # sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_10000_20000.pkl")
-    global_source_set = set()
+    sparse_encoder_path = os.path.join("./app/sparse_encoder_folder/sparse_encoder_241226.pkl")
+    # global_source_set = set()
 
     # if not os.path.exists(sparse_encoder_path):
     #     print(f"{sparse_encoder_path} not found. Creating sparse encoder...")
