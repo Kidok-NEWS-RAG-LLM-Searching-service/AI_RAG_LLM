@@ -1,0 +1,765 @@
+[
+    {
+        "session": 1,
+        "start_date": "1912-09-01",
+        "end_date": "1913-09-06",
+        "location": "평양신학교",
+        "chairperson": "원두우"
+    },
+    {
+        "session": 2,
+        "start_date": "1913-09-07",
+        "end_date": "1914-09-05",
+        "location": "서울소안동",
+        "chairperson": "왕길지"
+    },
+    {
+        "session": 3,
+        "start_date": "1914-09-06",
+        "end_date": "1915-09-03",
+        "location": "재령남산현",
+        "chairperson": "배유지"
+    },
+    {
+        "session": 4,
+        "start_date": "1915-09-04",
+        "end_date": "1916-09-01",
+        "location": "전주서문밖",
+        "chairperson": "김필수"
+    },
+    {
+        "session": 5,
+        "start_date": "1916-09-02",
+        "end_date": "1917-08-31",
+        "location": "평양신학교",
+        "chairperson": "양전백"
+    },
+    {
+        "session": 6,
+        "start_date": "1917-09-01",
+        "end_date": "1918-08-30",
+        "location": "서울승동",
+        "chairperson": "한석진"
+    },
+    {
+        "session": 7,
+        "start_date": "1918-08-31",
+        "end_date": "1919-10-03",
+        "location": "신천북교회당",
+        "chairperson": "김선두"
+    },
+    {
+        "session": 8,
+        "start_date": "1919-10-04",
+        "end_date": "1920-10-01",
+        "location": "평양신학교",
+        "chairperson": "마포삼열"
+    },
+    {
+        "session": 9,
+        "start_date": "1920-10-02",
+        "end_date": "1921-09-09",
+        "location": "서울안동",
+        "chairperson": "김익두"
+    },
+    {
+        "session": 10,
+        "start_date": "1921-09-10",
+        "end_date": "1922-09-09",
+        "location": "평양장대현",
+        "chairperson": "이기풍"
+    },
+    {
+        "session": 11,
+        "start_date": "1922-09-10",
+        "end_date": "1923-09-07",
+        "location": "서울승동",
+        "chairperson": "김성택"
+    },
+    {
+        "session": 12,
+        "start_date": "1923-09-08",
+        "end_date": "1924-09-12",
+        "location": "신의주교회당",
+        "chairperson": "함태영"
+    },
+    {
+        "session": 13,
+        "start_date": "1924-09-13",
+        "end_date": "1925-09-11",
+        "location": "함북신창리",
+        "chairperson": "이자익"
+    },
+    {
+        "session": 14,
+        "start_date": "1925-09-12",
+        "end_date": "1926-09-10",
+        "location": "평양서문밖",
+        "chairperson": "임택권"
+    },
+    {
+        "session": 15,
+        "start_date": "1926-09-11",
+        "end_date": "1927-09-08",
+        "location": "평양서문밖",
+        "chairperson": "김석찬"
+    },
+    {
+        "session": 16,
+        "start_date": "1927-09-09",
+        "end_date": "1928-09-06",
+        "location": "원산광석",
+        "chairperson": "김영훈"
+    },
+    {
+        "session": 17,
+        "start_date": "1928-09-07",
+        "end_date": "1929-09-05",
+        "location": "대구신정",
+        "chairperson": "염봉남"
+    },
+    {
+        "session": 18,
+        "start_date": "1929-09-06",
+        "end_date": "1930-09-11",
+        "location": "서울새문안",
+        "chairperson": "차재명"
+    },
+    {
+        "session": 19,
+        "start_date": "1930-09-12",
+        "end_date": "1931-09-10",
+        "location": "평양서문밖",
+        "chairperson": "홍종필"
+    },
+    {
+        "session": 20,
+        "start_date": "1931-09-11",
+        "end_date": "1932-09-08",
+        "location": "금강산수양관",
+        "chairperson": "장규명"
+    },
+    {
+        "session": 21,
+        "start_date": "1932-09-09",
+        "end_date": "1933-09-07",
+        "location": "평양창동",
+        "chairperson": "남궁혁"
+    },
+    {
+        "session": 22,
+        "start_date": "1933-09-08",
+        "end_date": "1934-09-06",
+        "location": "선천남교회당",
+        "chairperson": "장흥범"
+    },
+    {
+        "session": 23,
+        "start_date": "1934-09-07",
+        "end_date": "1935-09-05",
+        "location": "평양서문밖",
+        "chairperson": "이인식"
+    },
+    {
+        "session": 24,
+        "start_date": "1935-09-06",
+        "end_date": "1936-09-10",
+        "location": "평양서문밖",
+        "chairperson": "정인과"
+    },
+    {
+        "session": 25,
+        "start_date": "1936-09-11",
+        "end_date": "1937-09-09",
+        "location": "광주양림",
+        "chairperson": "이승길"
+    },
+    {
+        "session": 26,
+        "start_date": "1937-09-10",
+        "end_date": "1938-09-08",
+        "location": "대구제일",
+        "chairperson": "이문주"
+    },
+    {
+        "session": 27,
+        "start_date": "1938-09-09",
+        "end_date": "1939-09-07",
+        "location": "평양서문밖",
+        "chairperson": "홍택기"
+    },
+    {
+        "session": 28,
+        "start_date": "1939-09-08",
+        "end_date": "1940-09-05",
+        "location": "신의주제이",
+        "chairperson": "윤하영"
+    },
+    {
+        "session": 29,
+        "start_date": "1940-09-06",
+        "end_date": "1941-11-20",
+        "location": "평양창동",
+        "chairperson": "곽진근"
+    },
+    {
+        "session": 30,
+        "start_date": "1941-11-21",
+        "end_date": "1942-10-15",
+        "location": "평양창동",
+        "chairperson": "최지화"
+    },
+    {
+        "session": 31,
+        "start_date": "1942-10-16",
+        "end_date": "1943-10-10",
+        "location": "평양서문밖",
+        "chairperson": "김응순"
+    },
+    {
+        "session": 32,
+        "start_date": "1946-06-11",
+        "end_date": "1947-04-15",
+        "location": "서울승동",
+        "chairperson": "배은희"
+    },
+    {
+        "session": 33,
+        "start_date": "1947-04-16",
+        "end_date": "1948-04-19",
+        "location": "대구제일",
+        "chairperson": "이자익"
+    },
+    {
+        "session": 34,
+        "start_date": "1948-04-20",
+        "end_date": "1949-04-18",
+        "location": "서울새문안",
+        "chairperson": "이자익"
+    },
+    {
+        "session": 35,
+        "start_date": "1949-04-19",
+        "end_date": "1950-04-20",
+        "location": "서울새문안",
+        "chairperson": "최재화"
+    },
+    {
+        "session": 36,
+        "start_date": "1950-04-21",
+        "end_date": "1952-04-28",
+        "location": "대구제일, 부산중앙",
+        "chairperson": "권연호"
+    },
+    {
+        "session": 37,
+        "start_date": "1952-04-29",
+        "end_date": "1953-04-23",
+        "location": "대구서문",
+        "chairperson": "김재석"
+    },
+    {
+        "session": 38,
+        "start_date": "1953-04-24",
+        "end_date": "1954-04-22",
+        "location": "대구서문",
+        "chairperson": "명신흥"
+    },
+    {
+        "session": 39,
+        "start_date": "1954-04-23",
+        "end_date": "1955-04-21",
+        "location": "안동중앙",
+        "chairperson": "이원영"
+    },
+    {
+        "session": 40,
+        "start_date": "1955-04-22",
+        "end_date": "1956-09-19",
+        "location": "서울영락",
+        "chairperson": "한경직"
+    },
+    {
+        "session": 41,
+        "start_date": "1956-09-20",
+        "end_date": "1957-09-18",
+        "location": "서울새문안",
+        "chairperson": "이대영"
+    },
+    {
+        "session": 42,
+        "start_date": "1957-09-19",
+        "end_date": "1958-09-24",
+        "location": "부산중앙",
+        "chairperson": "전필순"
+    },
+    {
+        "session": 43,
+        "start_date": "1958-09-25",
+        "end_date": "1959-09-23",
+        "location": "서울영락",
+        "chairperson": "노진현"
+    },
+    {
+        "session": 44,
+        "start_date": "1959-09-24",
+        "end_date": "1960-09-21",
+        "location": "대전중앙",
+        "chairperson": "양화석"
+    },
+    {
+        "session": 45,
+        "start_date": "1960-09-22",
+        "end_date": "1961-09-20",
+        "location": "서울승동",
+        "chairperson": "고성모, 한상동"
+    },
+    {
+        "session": 46,
+        "start_date": "1961-09-21",
+        "end_date": "1962-09-19",
+        "location": "부산남",
+        "chairperson": "한상동"
+    },
+    {
+        "session": 47,
+        "start_date": "1962-09-20",
+        "end_date": "1963-09-18",
+        "location": "서울승동",
+        "chairperson": "이환수"
+    },
+    {
+        "session": 48,
+        "start_date": "1963-09-19",
+        "end_date": "1964-09-23",
+        "location": "서울승동",
+        "chairperson": "이수현"
+    },
+    {
+        "session": 49,
+        "start_date": "1964-09-24",
+        "end_date": "1965-09-22",
+        "location": "서울성도",
+        "chairperson": "김윤찬"
+    },
+    {
+        "session": 50,
+        "start_date": "1965-09-23",
+        "end_date": "1966-09-21",
+        "location": "서울승동",
+        "chairperson": "정규오"
+    },
+    {
+        "session": 51,
+        "start_date": "1966-09-22",
+        "end_date": "1967-09-20",
+        "location": "광주중앙",
+        "chairperson": "박찬목"
+    },
+    {
+        "session": 52,
+        "start_date": "1967-09-21",
+        "end_date": "1968-09-18",
+        "location": "평안, 대전중앙",
+        "chairperson": "김윤찬"
+    },
+    {
+        "session": 53,
+        "start_date": "1968-09-19",
+        "end_date": "1969-09-24",
+        "location": "부산초량",
+        "chairperson": "손계웅"
+    },
+    {
+        "session": 54,
+        "start_date": "1969-09-25",
+        "end_date": "1970-09-23",
+        "location": "서울장충",
+        "chairperson": "문재구"
+    },
+    {
+        "session": 55,
+        "start_date": "1970-09-24",
+        "end_date": "1971-09-22",
+        "location": "대구서현",
+        "chairperson": "김창인"
+    },
+    {
+        "session": 56,
+        "start_date": "1971-09-23",
+        "end_date": "1972-09-20",
+        "location": "대전중앙",
+        "chairperson": "정규선"
+    },
+    {
+        "session": 57,
+        "start_date": "1972-09-21",
+        "end_date": "1973-09-19",
+        "location": "서울충현",
+        "chairperson": "박성겸"
+    },
+    {
+        "session": 58,
+        "start_date": "1973-09-20",
+        "end_date": "1974-09-18",
+        "location": "인천제이",
+        "chairperson": "박요한"
+    },
+    {
+        "session": 59,
+        "start_date": "1974-09-19",
+        "end_date": "1975-09-24",
+        "location": "서울평안",
+        "chairperson": "최동진"
+    },
+    {
+        "session": 60,
+        "start_date": "1975-09-25",
+        "end_date": "1976-09-22",
+        "location": "서울승동, 총신강당",
+        "chairperson": "장성칠"
+    },
+    {
+        "session": 61,
+        "start_date": "1976-09-23",
+        "end_date": "1977-09-21",
+        "location": "총신중앙",
+        "chairperson": "황금천"
+    },
+    {
+        "session": 62,
+        "start_date": "1977-09-22",
+        "end_date": "1978-09-20",
+        "location": "총신강당",
+        "chairperson": "이기하"
+    },
+    {
+        "session": 63,
+        "start_date": "1978-09-21",
+        "end_date": "1979-09-19",
+        "location": "부산부전",
+        "chairperson": "한병기"
+    },
+    {
+        "session": 64,
+        "start_date": "1979-09-20",
+        "end_date": "1980-09-24",
+        "location": "대구동부",
+        "chairperson": "한석지"
+    },
+    {
+        "session": 65,
+        "start_date": "1980-09-25",
+        "end_date": "1981-09-23",
+        "location": "부산부전",
+        "chairperson": "이영수"
+    },
+    {
+        "session": 66,
+        "start_date": "1981-09-24",
+        "end_date": "1982-09-22",
+        "location": "대전중앙",
+        "chairperson": "최성원"
+    },
+    {
+        "session": 67,
+        "start_date": "1982-09-23",
+        "end_date": "1983-09-27",
+        "location": "군산개복",
+        "chairperson": "김현중"
+    },
+    {
+        "session": 68,
+        "start_date": "1983-09-28",
+        "end_date": "1984-09-17",
+        "location": "서울평안",
+        "chairperson": "배재운"
+    },
+    {
+        "session": 69,
+        "start_date": "1984-09-18",
+        "end_date": "1985-09-16",
+        "location": "대구서현",
+        "chairperson": "최훈"
+    },
+    {
+        "session": 70,
+        "start_date": "1985-09-17",
+        "end_date": "1986-09-22",
+        "location": "서울청량",
+        "chairperson": "박명수"
+    },
+    {
+        "session": 71,
+        "start_date": "1986-09-23",
+        "end_date": "1987-09-21",
+        "location": "서울승동",
+        "chairperson": "안중섭"
+    },
+    {
+        "session": 72,
+        "start_date": "1987-09-22",
+        "end_date": "1988-09-19",
+        "location": "서울신림동",
+        "chairperson": "김길현"
+    },
+    {
+        "session": 73,
+        "start_date": "1988-09-20",
+        "end_date": "1989-09-18",
+        "location": "대구서문",
+        "chairperson": "이성헌"
+    },
+    {
+        "session": 74,
+        "start_date": "1989-09-19",
+        "end_date": "1990-09-17",
+        "location": "서울평안",
+        "chairperson": "이성택"
+    },
+    {
+        "session": 75,
+        "start_date": "1990-09-18",
+        "end_date": "1991-09-23",
+        "location": "김제중앙",
+        "chairperson": "유인식"
+    },
+    {
+        "session": 76,
+        "start_date": "1991-09-24",
+        "end_date": "1992-09-21",
+        "location": "대구동신",
+        "chairperson": "이봉학"
+    },
+    {
+        "session": 77,
+        "start_date": "1992-09-22",
+        "end_date": "1993-09-20",
+        "location": "인천제이",
+        "chairperson": "이삼성"
+    },
+    {
+        "session": 78,
+        "start_date": "1993-09-21",
+        "end_date": "1994-09-26",
+        "location": "광주동명",
+        "chairperson": "최기채"
+    },
+    {
+        "session": 79,
+        "start_date": "1994-09-27",
+        "end_date": "1995-09-18",
+        "location": "대구동부",
+        "chairperson": "김덕신"
+    },
+    {
+        "session": 80,
+        "start_date": "1995-09-19",
+        "end_date": "1996-09-16",
+        "location": "서울충현",
+        "chairperson": "정석홍"
+    },
+    {
+        "session": 81,
+        "start_date": "1996-09-17",
+        "end_date": "1997-09-22",
+        "location": "청주중앙",
+        "chairperson": "김준규"
+    },
+    {
+        "session": 82,
+        "start_date": "1997-09-23",
+        "end_date": "1998-09-21",
+        "location": "서울충현",
+        "chairperson": "신세원"
+    },
+    {
+        "session": 83,
+        "start_date": "1998-09-22",
+        "end_date": "1999-09-27",
+        "location": "서울왕성",
+        "chairperson": "길자연"
+    },
+    {
+        "session": 84,
+        "start_date": "1999-09-28",
+        "end_date": "2000-09-25",
+        "location": "정읍성광",
+        "chairperson": "김도빈"
+    },
+    {
+        "session": 85,
+        "start_date": "2000-09-26",
+        "end_date": "2001-09-17",
+        "location": "진주",
+        "chairperson": "김동권"
+    },
+    {
+        "session": 86,
+        "start_date": "2001-09-18",
+        "end_date": "2002-09-23",
+        "location": "서울충현",
+        "chairperson": "예종탁"
+    },
+    {
+        "session": 87,
+        "start_date": "2002-09-24",
+        "end_date": "2003-09-22",
+        "location": "창훈대",
+        "chairperson": "한명수"
+    },
+    {
+        "session": 88,
+        "start_date": "2003-09-23",
+        "end_date": "2004-09-20",
+        "location": "대구동신",
+        "chairperson": "임태득"
+    },
+    {
+        "session": 89,
+        "start_date": "2004-09-21",
+        "end_date": "2005-09-25",
+        "location": "서울충현",
+        "chairperson": "서기행"
+    },
+    {
+        "session": 90,
+        "start_date": "2005-09-26",
+        "end_date": "2006-09-18",
+        "location": "대전중앙",
+        "chairperson": "황승기"
+    },
+    {
+        "session": 91,
+        "start_date": "2006-09-19",
+        "end_date": "2007-09-10",
+        "location": "온천제일",
+        "chairperson": "장차남"
+    },
+    {
+        "session": 92,
+        "start_date": "2007-09-11",
+        "end_date": "2008-09-10",
+        "location": "연정",
+        "chairperson": "김용실"
+    },
+    {
+        "session": 93,
+        "start_date": "2008-09-11",
+        "end_date": "2009-09-20",
+        "location": "제주국제컨벤션센터",
+        "chairperson": "최병남"
+    },
+    {
+        "session": 94,
+        "start_date": "2009-09-21",
+        "end_date": "2010-09-26",
+        "location": "우정교회",
+        "chairperson": "서정배"
+    },
+    {
+        "session": 95,
+        "start_date": "2010-09-27",
+        "end_date": "2011-09-18",
+        "location": "홍천대명비발디파크",
+        "chairperson": "김삼봉"
+    },
+    {
+        "session": 96,
+        "start_date": "2011-09-19",
+        "end_date": "2012-09-16",
+        "location": "전북대학교삼성문화센터",
+        "chairperson": "이기창"
+    },
+    {
+        "session": 97,
+        "start_date": "2012-09-17",
+        "end_date": "2013-09-22",
+        "location": "대구성명교회",
+        "chairperson": "정준모"
+    },
+    {
+        "session": 98,
+        "start_date": "2013-09-23",
+        "end_date": "2014-09-21",
+        "location": "수원과학대 라비돌리조트",
+        "chairperson": "안명환"
+    },
+    {
+        "session": 99,
+        "start_date": "2014-09-22",
+        "end_date": "2015-09-13",
+        "location": "광주겨자씨교회",
+        "chairperson": "백남선"
+    },
+    {
+        "session": 100,
+        "start_date": "2015-09-14",
+        "end_date": "2016-09-25",
+        "location": "반야월교회",
+        "chairperson": "박무용"
+    },
+    {
+        "session": 101,
+        "start_date": "2016-09-26",
+        "end_date": "2017-09-17",
+        "location": "충현교회",
+        "chairperson": "김선규"
+    },
+    {
+        "session": 102,
+        "start_date": "2017-09-18",
+        "end_date": "2018-09-09",
+        "location": "기쁨의교회",
+        "chairperson": "전계헌"
+    },
+    {
+        "session": 103,
+        "start_date": "2018-09-10",
+        "end_date": "2019-09-22",
+        "location": "반야월교회",
+        "chairperson": "이승희"
+    },
+    {
+        "session": 104,
+        "start_date": "2019-09-23",
+        "end_date": "2020-09-20",
+        "location": "충현교회",
+        "chairperson": "김종준"
+    },
+    {
+        "session": 105,
+        "start_date": "2020-09-21",
+        "end_date": "2021-09-12",
+        "location": "새에덴교회",
+        "chairperson": "소강석"
+    },
+    {
+        "session": 106,
+        "start_date": "2021-09-13",
+        "end_date": "2022-09-18",
+        "location": "우정교회",
+        "chairperson": "배광식"
+    },
+    {
+        "session": 107,
+        "start_date": "2022-09-19",
+        "end_date": "2023-09-17",
+        "location": "주다산교회",
+        "chairperson": "권순웅"
+    },
+    {
+        "session": 108,
+        "start_date": "2023-09-18",
+        "end_date": "2024-09-22",
+        "location": "새로남교회",
+        "chairperson": "오정호"
+    },
+    {
+        "session": 109,
+        "start_date": "2024-09-23",
+        "end_date": "2025-09-22",
+        "location": "우정교회",
+        "chairperson": "김종혁"
+    }
+]

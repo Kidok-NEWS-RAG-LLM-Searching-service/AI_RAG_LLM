@@ -3,6 +3,7 @@ from http.client import HTTPException
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from app.api.service.logs.log import put_search_response_tracking
 from app.api.service.rag_pipeline import rag_pipeline
 
 router = APIRouter()
@@ -70,5 +71,33 @@ async def get_stream_result(request: DocsRequest):
             (f"Error: {str(e)}\n" for _ in range(1)),
             media_type="text/event-stream",
         )
+
+
+@router.post("/query_routing", response_model=QueryResponse)
+async def get_query_result(request: QueryRequest):
+    try:
+        result = rag_pipeline.query_model_pipeline(request.query)
+        answer = rag_pipeline.get_answer(result)
+        sources = rag_pipeline.makeing_source(result)
+
+        response = {
+            "rag_result": answer,
+            "sources": sources
+        }
+        await put_search_response_tracking(query=request.query, answer=answer)
+
+        return response
+    except Exception as e:
+        # 에러 핸들링
+        raise HTTPException(500, str(e))
+
+
+
+
+
+
+
+
+
 
 

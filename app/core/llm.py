@@ -1,13 +1,15 @@
 from langchain_openai import ChatOpenAI
 from langchain_upstage import UpstageEmbeddings
 from app.core.config import settings
+from openai import OpenAI
+
 
 
 class AIModelManager:
     DEFAULT_MAX_TOKEN = 1024
     DEFAULT_EMBEDDING_MODEL = "embedding-query"
     DEFAULT_LLM_MODEL = "gpt-4o-mini-2024-07-18"
-    DEFAULT_LLM_MAX_RETRIES = 2
+    DEFAULT_LLM_MAX_RETRIES = 3
 
     def __init__(
         self,
@@ -18,6 +20,8 @@ class AIModelManager:
     ):
         self.embeddings = self._init_embeddings()
         self.llm = self._init_llm(llm_temperature, llm_max_tokens, llm_time_out, llm_max_retries)
+        self.client = OpenAI(api_key=settings.openai_api_key)
+
 
     def _init_embeddings(self):
         return UpstageEmbeddings(
