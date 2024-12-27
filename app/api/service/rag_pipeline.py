@@ -129,7 +129,7 @@ class RagPipeline:
         tokenizer="kiwi",
         embeddings=self.embeddings,
         top_k=20,
-        alpha=.3,
+        alpha=.5,
         )
         
         # 필수 파라미터들이 있는지 확인
@@ -137,9 +137,9 @@ class RagPipeline:
             "embeddings": self.embeddings,
             "sparse_encoder": index_params.get("sparse_encoder"),
             "index": index_params.get("index"),
-            "top_k": 20,
-            "alpha": 0.3,
-            "namespace": ""
+            "top_k": index_params.get("top_k"),
+            "alpha": index_params.get("alpha"),
+            "namespace": index_params.get("namespace")
         }
         # return InitVectorStore.init_pinecone_index(
         #     index_name=settings.pinecone_index_name,  # Pinecone 인덱스 이름
