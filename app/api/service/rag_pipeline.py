@@ -474,7 +474,8 @@ class RagPipeline:
         return clean_answer.strip()
 
     def _init_question_answer_chain(self):
-        prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template())
+        # prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template())
+        prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template_id())
         question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
         return question_answer_chain
 
