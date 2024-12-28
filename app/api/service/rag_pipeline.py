@@ -36,8 +36,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 class RagPipeline:
     ai_model_manager = AIModelManager()
     
-    summary_prompt = ChatPromptTemplate.from_messages(prompts.summary_prompt_template())
-    journalist_prompt = ChatPromptTemplate.from_messages(prompts.jounarlist_prompt_template())
+    summary_prompt = ChatPromptTemplate.from_messages(prompts.summary_prompt_template_id())
+    journalist_prompt = ChatPromptTemplate.from_messages(prompts.jounarlist_prompt_template_id())
     init_vectorstore = InitVectorStore()
 
     def __init__(self):
@@ -452,7 +452,51 @@ class RagPipeline:
             if item not in seen:
                 result.append(item)
                 seen.add(item)
-        return result
+        return result[:10]
+    
+        
+    def remove_hallucinated_sources(self, llm_text, source_list):
+        """
+        Remove source markers from the LLM text that are not in the source list.
+
+        Args:
+        llm_text (str): The LLM response text.
+        source_list (list): A list of valid source markers.
+
+        Returns:
+        str: The LLM text with hallucinated sources removed.
+        """
+        # Create a set of valid source markers
+        valid_sources = set(source_list)
+
+        # Find all source markers in the text
+        all_sources = re.findall(r"\[\d+\]", llm_text)
+
+        # Loop through all sources and remove hallucinated ones
+        for source in all_sources:
+            source_number = source.strip("[]")  # Extract the number without brackets
+            if source_number not in valid_sources:
+                print("wrong source: ", source_number)
+                llm_text = llm_text.replace(source, "")  # Remove invalid source
+
+        return llm_text
+    
+    def replace_sources_with_indices(self, llm_text, source_list):
+        """
+        Replace source markers in the LLM response with indices based on the source list order.
+
+        Args:
+        llm_text (str): The original LLM response text.
+        source_list (list): A list of source markers in the desired order.
+
+        Returns:
+        str: The LLM response with source markers replaced by their indices.
+        """
+        for index, source in enumerate(source_list, start=1):
+            llm_text = llm_text.replace(f"[{source}]", f"[{index}]")
+        return llm_text
+
+    
 
     # def makeing_source(self, result):
     #     # Extract sources list
@@ -480,7 +524,7 @@ class RagPipeline:
     #                 sources_list[ind] = 'PASS'
     #                 # print(source[ind])
 
-    #     print(f'Check Halucinated sources: {sources_list}')
+    #     print(f'Check Halucinated sources: {sources_list}')summary_prompt_template
     #     return source
     
     def makeing_source(self, result, sources_list):
@@ -512,47 +556,7 @@ class RagPipeline:
         return source
 
 
-    def replace_sources_with_indices(self, llm_text, source_list):
-        """
-        Replace source markers in the LLM response with indices based on the source list order.
 
-        Args:
-        llm_text (str): The original LLM response text.
-        source_list (list): A list of source markers in the desired order.
-
-        Returns:
-        str: The LLM response with source markers replaced by their indices.
-        """
-        for index, source in enumerate(source_list, start=1):
-            llm_text = llm_text.replace(f"[{source}]", f"[{index}]")
-        return llm_text
-    
-    def remove_hallucinated_sources(self, llm_text, source_list):
-        """
-        Remove source markers from the LLM text that are not in the source list.
-
-        Args:
-        llm_text (str): The LLM response text.
-        source_list (list): A list of valid source markers.
-
-        Returns:
-        str: The LLM text with hallucinated sources removed.
-        """
-        # Create a set of valid source markers
-        valid_sources = set(source_list)
-
-        # Find all source markers in the text
-        all_sources = re.findall(r"\[\d+\]", llm_text)
-
-        # Loop through all sources and remove hallucinated ones
-        for source in all_sources:
-            source_number = source.strip("[]")  # Extract the number without brackets
-            if source_number not in valid_sources:
-                print("wrong source: ", source_number)
-                llm_text = llm_text.replace(source, "")  # Remove invalid source
-
-        return llm_text
-    
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
     def get_answer(self,result):
         # "Sources: [...]" 패턴을 제거
@@ -560,10 +564,10 @@ class RagPipeline:
         sources_list =  self.extract_sources(result['answer'])
         remove_duplicates_sources_list = self.remove_duplicates_keep_order(sources_list)
         updated_answer = self.remove_hallucinated_sources(clean_answer.strip(), remove_duplicates_sources_list)
-        updated_answer = self.replace_sources_with_indices(clean_answer.strip(), remove_duplicates_sources_list)
+        full_updated_answer = self.replace_sources_with_indices(updated_answer, remove_duplicates_sources_list)
         # 공백 정리
-        print(f'answer: {updated_answer[:30]}')
-        return updated_answer, remove_duplicates_sources_list
+        print(f'answer: {full_updated_answer[:30]}')
+        return full_updated_answer, remove_duplicates_sources_list
 
     def _init_question_answer_chain(self):
         # prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template())
