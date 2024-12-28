@@ -77,8 +77,8 @@ async def get_stream_result(request: DocsRequest):
 async def get_query_result(request: QueryRequest):
     try:
         result = rag_pipeline.query_model_pipeline(request.query)
-        answer = rag_pipeline.get_answer(result)
-        sources = rag_pipeline.makeing_source(result)
+        answer, sources_list = rag_pipeline.get_answer(result)
+        sources = rag_pipeline.makeing_source(result, sources_list)
 
         response = {
             "rag_result": answer,
