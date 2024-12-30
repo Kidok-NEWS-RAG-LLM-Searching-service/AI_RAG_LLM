@@ -4,6 +4,8 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.documents import Document
 from pydantic import ConfigDict, model_validator
 from typing import List, Dict, Any, Optional, Tuple
+import asyncio
+from functools import partial
 
 class NewPineconeKiwiHybridRetriever(BaseRetriever):
     """
@@ -48,6 +50,38 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
                 "Please install it with `pip install pinecone_text`."
             )
         return values
+
+    def similarity_search(
+        self, 
+        query: str, 
+        k: int = None, 
+        filter: Optional[dict] = None,
+        **kwargs
+    ) -> List[Document]:
+        """
+        주어진 쿼리에 대해 유사한 문서를 검색하는 메서드입니다.
+
+        Args:
+            query (str): 검색 쿼리
+            k (int, optional): 반환할 문서 수
+            filter (dict, optional): 검색 필터
+            **kwargs: 추가 검색 매개변수
+
+        Returns:
+            List[Document]: 검색된 문서 리스트
+        """
+        search_kwargs = {"search_kwargs": {}}
+        
+        if k is not None:
+            search_kwargs["search_kwargs"]["top_k"] = k
+        if filter is not None:
+            search_kwargs["search_kwargs"]["filter"] = filter
+        
+        return self._get_relevant_documents(
+            query,
+            run_manager=CallbackManagerForRetrieverRun.get_noop_manager(),
+            **search_kwargs
+        )
 
     def _get_relevant_documents(
         self,
@@ -160,6 +194,8 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
                     or kwargs.get("k", query_params["top_k"]),
                 }
             )
+        
+            print('filter: ', kwargs.get("filter", query_params.get("filter")))
 
         return query_params
 
@@ -223,4 +259,181 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
             return reranked_documents
         else:
             raise ValueError("Pinecone 인덱스가 초기화되지 않았습니다.")
+
+    # async def ainvoke(self, query: str, **kwargs) -> List[Document]:
+    #     search_kwargs = kwargs.get('search_kwargs', {})
+    #     filter_dict = search_kwargs.get('filter', {})
+        
+    #     return await self.asimilarity_search(
+    #         query,
+    #         filter=filter_dict  # filter를 직접 전달
+    #     )
+    
+    async def asimilarity_search(
+        self, 
+        query: str, 
+        k: int = None, 
+        filter: Optional[dict] = None,
+        **kwargs
+    ) -> List[Document]:
+        """
+        주어진 쿼리에 대해 유사한 문서를 비동기적으로 검색하는 메서드입니다.
+
+        Args:
+            query (str): 검색 쿼리
+            k (int, optional): 반환할 문서 수
+            filter (dict, optional): 검색 필터
+            **kwargs: 추가 검색 매개변수
+
+        Returns:
+            List[Document]: 검색된 문서 리스트
+        """
+        search_kwargs = {"search_kwargs": {}}
+        
+        if k is not None:
+            search_kwargs["search_kwargs"]["top_k"] = k
+        if filter is not None:
+            search_kwargs["search_kwargs"]["filter"] = filter
+        
+        return await self._aget_relevant_documents(
+            query,
+            run_manager=CallbackManagerForRetrieverRun.get_noop_manager(),
+            **search_kwargs
+        )
+        
+    async def _aget_relevant_documents(
+        self,
+        query: str,
+        *,
+        run_manager: CallbackManagerForRetrieverRun,
+        **search_kwargs,
+    ) -> List[Document]:
+        """
+        주어진 쿼리에 대해 관련 문서를 비동기적으로 검색하는 메인 메서드입니다.
+
+        Args:
+            query (str): 검색 쿼리
+            run_manager (CallbackManagerForRetrieverRun): 콜백 관리자
+            **search_kwargs: 추가 검색 매개변수
+
+        Returns:
+            List[Document]: 관련 문서 리스트
+        """
+
+
+        # 알파 값 가져오기
+        alpha = self._get_alpha(search_kwargs)
+        
+        # 쿼리 인코딩 (CPU 작업이므로 ThreadPoolExecutor에서 실행)
+        loop = asyncio.get_event_loop()
+        encode_func = partial(self._encode_query, query, alpha)
+        dense_vec, sparse_vec = await loop.run_in_executor(None, encode_func)
+        
+        # 쿼리 파라미터 구성
+        query_params = self._build_query_params(
+            dense_vec, sparse_vec, search_kwargs, include_metadata=True
+        )
+
+        # Pinecone 쿼리를 별도 스레드에서 실행 (병렬 처리)
+        query_response = await loop.run_in_executor(
+            None, 
+            partial(self.index.query, **query_params)
+        )
+
+        # 쿼리 응답 처리
+        documents = self._process_query_response(query_response)
+
+        # Rerank 옵션이 있는 경우 rerank 수행
+        if (
+            "search_kwargs" in search_kwargs
+            and "rerank" in search_kwargs["search_kwargs"]
+        ):
+            documents = await self._arerank_documents(query, documents, **search_kwargs)
+
+        return documents
+
+    async def _arerank_documents(
+        self, 
+        query: str, 
+        documents: List[Document], 
+        **kwargs
+    ) -> List[Document]:
+        """
+        검색된 문서를 비동기적으로 재정렬하는 메서드입니다.
+
+        Args:
+            query (str): 검색 쿼리
+            documents (List[Document]): 재정렬할 문서 리스트
+            **kwargs: 추가 매개변수
+
+        Returns:
+            List[Document]: 재정렬된 문서 리스트
+        """
+        options = kwargs.get("search_kwargs", {})
+        rerank_model = options.get("rerank_model", "bge-reranker-v2-m3")
+        top_n = options.get("top_n", len(documents))
+        rerank_docs = [
+            {"id": str(i), "text": doc.page_content} for i, doc in enumerate(documents)
+        ]
+
+        if self.pc is not None:
+            # Pinecone rerank API 호출 (I/O 작업이므로 비동기로 처리)
+            loop = asyncio.get_event_loop()
+            reranked_result = await loop.run_in_executor(
+                None,
+                partial(
+                    self.pc.inference.rerank,
+                    model=rerank_model,
+                    query=query,
+                    documents=rerank_docs,
+                    top_n=top_n,
+                    return_documents=True,
+                )
+            )
+
+            # 재정렬된 결과를 기반으로 문서 리스트 재구성
+            reranked_documents = []
+            for item in reranked_result.data:
+                original_doc = documents[int(item["index"])]
+                reranked_doc = Document(
+                    page_content=original_doc.page_content,
+                    metadata={**original_doc.metadata, "rerank_score": item["score"]},
+                )
+                reranked_documents.append(reranked_doc)
+
+            return reranked_documents
+        else:
+            raise ValueError("Pinecone 인덱스가 초기화되지 않았습니다.")
+
+    async def asimilarity_search(
+        self, 
+        query: str, 
+        k: int = None, 
+        filter: Optional[dict] = None,
+        **kwargs
+    ) -> List[Document]:
+        """
+        주어진 쿼리에 대해 유사한 문서를 비동기적으로 검색하는 메서드입니다.
+
+        Args:
+            query (str): 검색 쿼리
+            k (int, optional): 반환할 문서 수
+            filter (dict, optional): 검색 필터
+            **kwargs: 추가 검색 매개변수
+
+        Returns:
+            List[Document]: 검색된 문서 리스트
+        """
+        search_kwargs = {"search_kwargs": {}}
+        
+        if k is not None:
+            search_kwargs["search_kwargs"]["top_k"] = k
+        if filter is not None:
+            search_kwargs["search_kwargs"]["filter"] = filter
+        
+        return await self._aget_relevant_documents(
+            query,
+            run_manager=CallbackManagerForRetrieverRun.get_noop_manager(),
+            **search_kwargs
+        )
 

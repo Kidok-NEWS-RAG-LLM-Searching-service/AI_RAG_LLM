@@ -8,7 +8,8 @@ from pydantic import Field
 from app.api.service.retrievers.CustomVectorStoreRetriever import  CustomVectorStoreRetriever
 from app.core.vectorstore import CustomPineconeVectorStore
 
-from datetime import datetime
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 class TimeWeightedJounaralistFilteringVectorStoreRetriever(CustomVectorStoreRetriever):
     """Retriever that combines embedding similarity with recency in retrieving values."""
@@ -42,15 +43,31 @@ class TimeWeightedJounaralistFilteringVectorStoreRetriever(CustomVectorStoreRetr
         time_score = (1.0 - self.decay_rate) ** hours_passed
         return vector_relevance + time_score
 
+    # def _get_rescored_docs(self, docs_and_scores: List[Tuple[Document, float]]) -> List[Document]:
+    #     """Rescore and sort the documents based on combined scores."""
+    #     current_time = datetime.now()
+    #     rescored_docs = [
+    #         (doc, self._get_combined_score(score, doc, current_time))
+    #         for doc, score in docs_and_scores
+    #     ]
+    #     rescored_docs.sort(key=lambda x: x[1], reverse=True)
+    #     # return [(score, doc) for doc, score in rescored_docs[:self.k]]
+    #     return [doc for doc, _ in rescored_docs[:self.k]]\
+        # CPU 집약적인 작업을 위한 ThreadPool 처리
+        
     def _get_rescored_docs(self, docs_and_scores: List[Tuple[Document, float]]) -> List[Document]:
-        """Rescore and sort the documents based on combined scores."""
         current_time = datetime.now()
-        rescored_docs = [
-            (doc, self._get_combined_score(score, doc, current_time))
-            for doc, score in docs_and_scores
-        ]
+        
+        with ThreadPoolExecutor() as executor:
+            rescored_docs = list(executor.map(
+                lambda doc_score: (
+                    doc_score[0],
+                    self._get_combined_score(doc_score[1], doc_score[0], current_time)
+                ),
+                docs_and_scores
+            ))
+        
         rescored_docs.sort(key=lambda x: x[1], reverse=True)
-        # return [(score, doc) for doc, score in rescored_docs[:self.k]]
         return [doc for doc, _ in rescored_docs[:self.k]]
 
     def _get_summary_docs(self, rescored_docs: List[Document]) -> List[Document]:
@@ -108,6 +125,37 @@ class TimeWeightedJounaralistFilteringVectorStoreRetriever(CustomVectorStoreRetr
             # page_content에서 요약했던 contextual 부분만 가져오기
             # summary_docs = self._get_summary_docs(rescored_docs)
             merger.add_list(rescored_docs)
+        return merger.get_total_list()
+    
+    async def _aget_relevant_documents(
+            self, query: str, *, run_manager: CallbackManagerForRetrieverRun = None,
+    ) -> List[Document]:
+        merger = DynamicMerger()
+        
+        # 비동기 작업 리스트 생성
+        async def process_journalist(name):
+            docs_and_scores = await CustomVectorStoreRetriever(
+                vectorstore=self.vectorstore,
+            )._aget_relevant_documents(
+                query=query,
+                filter={
+                    "journalist_name": {"$in": [name]},
+                    "section": self.search_kwargs.get('filter')['section'],
+                    "init_year": self.search_kwargs.get('filter')['init_year'],
+                },
+                k=self.k,
+                setting=self.search_kwargs.get('setting')
+            )
+            return self._get_rescored_docs(docs_and_scores)
+
+        # 모든 기자에 대한 작업을 동시에 실행
+        tasks = [process_journalist(name) for name in self.search_kwargs.get('name_list', [])]
+        results = await asyncio.gather(*tasks)
+        
+        # 결과 병합
+        for rescored_docs in results:
+            merger.add_list(rescored_docs)
+            
         return merger.get_total_list()
 
 

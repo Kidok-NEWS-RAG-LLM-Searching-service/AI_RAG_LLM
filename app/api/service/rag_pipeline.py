@@ -157,7 +157,13 @@ class RagPipeline:
         
     def hybird_dense_sparse_retriever(self):
         pinecone_params = self._init_pinecone_index()
-        return NewPineconeKiwiHybridRetriever(**pinecone_params)
+        return NewPineconeKiwiHybridRetriever(**pinecone_params,
+            search_kwargs={
+                'filter': {
+                    'section': {'$nin': ['기독AD']}, 
+                }
+            }
+        )
 
 
     def _init_timeweighted_retriever(self):
@@ -580,15 +586,17 @@ class RagPipeline:
     async def timeweighted_LLM(self, query: str) -> dict:
         # 체인 실행
             # retriever에 직접 search_kwargs 설정
-        docs = await self.hybird_retriever.ainvoke(
+        # docs = await self.hybird_retriever.aget_relevant_documents(
+        start_time = time.time()
+        docs = await self.hybird_retriever.asimilarity_search(
             query,
-            search_kwargs={
-                'filter': {
+            filter={
                     'section': {'$nin': ['기독AD']}, 
                     'init_year': {'$gte': datetime.now().year-2}
-                }
             }
         )
+        end_time = time.time()
+        print(f" | {self.hybird_retriever._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
             # 검색된 문서로 chain 실행
         result = await self.question_answer_chain.ainvoke({
             "input": query,
@@ -610,14 +618,33 @@ class RagPipeline:
 
     @timer
     async def hybird_dense_sparse_LLM(self, query: str) -> dict:
-        docs = await self.hybird_retriever.ainvoke(
+        
+        start_time = time.time()
+        print('start_time: ', start_time)
+        docs = await self.hybird_retriever.asimilarity_search(
             query,
-            search_kwargs={
-                'filter': {
-                    'section': {'$nin': ['기독AD']}, 
-                }
+            filter={
+                'section': {'$nin': ['기독AD']}, 
             }
         )
+        end_time = time.time()
+        print('end_time: ', end_time)
+        print(f" | {self.hybird_retriever._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        # start_time = time.time()
+        # docs = await self.hybird_retriever.ainvoke(
+            # query,
+            # search_kwargs={
+            #     'filter': {
+            #         'section': {'$nin': ['기독AD']}, 
+            #     }
+            # }
+            # filter={
+            #     'section': {'$nin': ['기독AD']}, 
+            # }
+        # )
+        # end_time = time.time()
+        # print(f" | {self.hybird_retriever._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        
         # 검색된 문서로 chain 실행
         result = await self.question_answer_chain.ainvoke({
             "input": query,
@@ -625,7 +652,8 @@ class RagPipeline:
             "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
             "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
         })
-        # result = self.hybrid_rag_chain.invoke(
+        
+        # result = await self.hybrid_rag_chain.ainvoke(
         #     {
         #         "input": query,
         #         "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
@@ -638,27 +666,47 @@ class RagPipeline:
             "answer": result,  # result가 dict 형태로 반환되므로
             "context": docs
         }
+        # return result
 
     @timer
     async def date_filter_LLM(self, query: str, date_list: list) -> dict:
         date_filtering_vectorstore = self._init_date_filter_score_retriever(date_list)
-        rag_chain = create_retrieval_chain(date_filtering_vectorstore, self.question_answer_chain)
+        start_time = time.time()
+        print('start_time: ', start_time)
+        docs = await date_filtering_vectorstore._aget_relevant_documents(query+' 총회')
+        end_time = time.time()
+        print('end_time: ', end_time)
+        print(f" | {date_filtering_vectorstore._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        # rag_chain = create_retrieval_chain(date_filtering_vectorstore, self.question_answer_chain)
 
-        result = await rag_chain.ainvoke(
+        # result = await rag_chain.ainvoke(
+        result = await self.question_answer_chain.ainvoke(
             {
-                "input": query + ' 총회',
+                # "input": query + ' 총회',
+                "input": query,
+                "context": docs,
                 "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
                 "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
             }
         )
 
-        return result
+        return {
+            "input": query,
+            "answer": result,  # result가 dict 형태로 반환되므로
+            "context": docs
+        }
+        # return result
     
     @timer
     async def summary_filter_LLM(self, query: str, date_list: list) -> dict:
         filtering_vectorstore = self._init_summary_filter_retriever(date_list)
 
-        relevant_docs = filtering_vectorstore._get_relevant_documents(" ")
+        start_time = time.time()
+        print('start_time: ', start_time)
+        relevant_docs = await filtering_vectorstore._aget_relevant_documents(" ")
+        end_time = time.time()
+        print('end_time: ', end_time)
+        print(f" | {filtering_vectorstore._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
 
         # 요약 작업 수행
         answer = await self.summary_chain.ainvoke({
@@ -677,17 +725,33 @@ class RagPipeline:
         else:
             type = 'global'
         print('type: ', type)
+        
+        
         jounaralist_time_filtering_retriever = self._init_jounaralist_time_filter_retriever(name_list, type)
-        rag_chain = create_retrieval_chain(jounaralist_time_filtering_retriever, self.journalist_chain)
-        result = await rag_chain.ainvoke(
+        start_time = time.time()
+        print('start_time: ', start_time)
+        docs = await jounaralist_time_filtering_retriever._aget_relevant_documents(query)
+        end_time = time.time()
+        print('end_time: ', end_time)
+        print(f" | {jounaralist_time_filtering_retriever._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        # rag_chain = create_retrieval_chain(jounaralist_time_filtering_retriever, self.journalist_chain)
+        
+        # result = await rag_chain.ainvoke(
+        result = await self.journalist_chain.ainvoke(
             {
                 "input": query,
+                "context": docs,
                 "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
                 "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
             }
         )
 
-        return result
+        # return result
+        return {
+            "input": query,
+            "answer": result,  # result가 dict 형태로 반환되므로
+            "context": docs
+        }
 
     
     @timer
@@ -739,7 +803,7 @@ class RagPipeline:
 
         elif "Journalist-Related Query" in intent:
             print("----------- MODLE: JOURNALIST-RELATED QUERY -----------")
-            name_list = await self.extract_journalist_names(query)
+            name_list = self.extract_journalist_names(query)
             if not name_list:
                 print('name_list: ', name_list)
                 print("We can't get name_list. So turn to genernal Q&A")
