@@ -816,7 +816,7 @@ class RagPipeline:
 
         elif "Journalist-Related Query" in intent:
             print("----------- MODLE: JOURNALIST-RELATED QUERY -----------")
-            name_list = self.extract_journalist_names(query)
+            name_list = await self.extract_journalist_names(query)
             if not name_list:
                 print('name_list: ', name_list)
                 print("We can't get name_list. So turn to genernal Q&A")
