@@ -73,11 +73,30 @@ async def get_stream_result(request: DocsRequest):
         )
 
 
+# @router.post("/query_routing", response_model=QueryResponse)
+# async def get_query_result(request: QueryRequest):
+#     try:
+#         result = rag_pipeline.query_model_pipeline(request.query)
+#         answer, sources_list = rag_pipeline.get_answer(result)
+#         sources = rag_pipeline.makeing_source(result, sources_list)
+
+#         response = {
+#             "rag_result": answer,
+#             "sources": sources
+#         }
+#         await put_search_response_tracking(query=request.query, answer=answer)
+
+#         return response
+#     except Exception as e:
+#         # 에러 핸들링
+#         raise HTTPException(500, str(e))
+
+# 비동기적으로 처리
 @router.post("/query_routing", response_model=QueryResponse)
 async def get_query_result(request: QueryRequest):
     try:
-        result = rag_pipeline.query_model_pipeline(request.query)
-        answer, sources_list = rag_pipeline.get_answer(result)
+        result = await rag_pipeline.query_model_pipeline(request.query)
+        answer, sources_list = await rag_pipeline.get_answer(result)
         sources = rag_pipeline.makeing_source(result, sources_list)
 
         response = {
@@ -90,7 +109,6 @@ async def get_query_result(request: QueryRequest):
     except Exception as e:
         # 에러 핸들링
         raise HTTPException(500, str(e))
-
 
 
 

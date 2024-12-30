@@ -45,6 +45,7 @@ class RagPipeline:
         self.llm = self.ai_model_manager.llm
         self.embeddings = self.ai_model_manager.embeddings
         self.client = self.ai_model_manager.client   
+        self.async_client = self.ai_model_manager.async_client
         
         self.vectorstore = self.init_vectorstore.init_pinecone_vectorstore()
         self.add_jounaralist_name_customize_vectorstore = self.init_vectorstore.init_customize_vectorstore()
@@ -229,12 +230,12 @@ class RagPipeline:
     # rag_chain = create_retrieval_chain(pinecone_retriever, question_answer_chain)
 
     # query routing을 위한 LLM 호출하는 함수
-    def query_llm(self, query: str, model: str = ai_model_manager.DEFAULT_LLM_MODEL) -> str:
+    async def query_llm(self, query: str) -> str:
         """
         Query the LLM with a prompt and return the response.
         """
-        response = self.client.chat.completions.create(
-            model=model,
+        response = await self.async_client.chat.completions.create(
+            model=self.ai_model_manager.DEFAULT_LLM_MODEL,
             messages=[{"role": "system", "content": prompts.query_routing_prompt_system()},
                       {"role": "user", "content": prompts.query_routing_prompt_user(query=query)}]
         )
@@ -242,12 +243,12 @@ class RagPipeline:
         return response.choices[0].message.content
 
     # 날짜 계산에 대한 LLM을 호출하는 함수
-    def date_cal_llm(self, query: str, model: str = ai_model_manager.DEFAULT_LLM_MODEL) -> str:
+    async def date_cal_llm(self, query: str) -> str:
         """
         Query the LLM with a prompt and return the response.
         """
-        response = self.client.chat.completions.create(
-            model=model,
+        response = await self.async_client.chat.completions.create(
+            model=self.ai_model_manager.DEFAULT_LLM_MODEL,
             messages=[
                 {"role": "system", "content": prompts.date_cal_prompt_system()},
                 {"role": "user", "content": prompts.date_cal_prompt_user_3(query=query)}]
@@ -256,12 +257,12 @@ class RagPipeline:
         return response.choices[0].message.content
 
     # 날짜 계산에 대한 LLM을 호출하는 함수
-    def session_cal_llm(self, query: str, model: str = ai_model_manager.DEFAULT_LLM_MODEL) -> str:
+    async def session_cal_llm(self, query:str) -> str:
         """
         Query the LLM with a prompt and return the response.
         """
-        response = self.client.chat.completions.create(
-            model=model,
+        response = await self.async_client.chat.completions.create(
+            model=self.ai_model_manager.DEFAULT_LLM_MODEL,
             messages=[{"role": "system", "content":prompts.extract_session_prompt_system()},
                       {"role": "user", "content": prompts.extract_session_prompt_user(query=query)}]
         )
@@ -269,12 +270,12 @@ class RagPipeline:
         return response.choices[0].message.content
     
     # 기자 뉴스 모델 중 '최신' 혹은 '전체 기간' 대한 LLM을 호출하는 함수
-    def recent_or_global_cal_llm(self, query: str, model: str = ai_model_manager.DEFAULT_LLM_MODEL) -> str:
+    async def recent_or_global_cal_llm(self, query: str) -> str:
         """
         Query the LLM with a prompt and return the response.
         """
-        response = self.client.chat.completions.create(
-            model=model,
+        response = await self.async_client.chat.completions.create(
+            model=self.ai_model_manager.DEFAULT_LLM_MODEL,
             messages=[{"role": "user", "content": prompts.check_recent_or_global_prompt(query=query)}]
         )
 
@@ -283,22 +284,22 @@ class RagPipeline:
         
     def timer(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        async def wrapper(*args, **kwargs):
             start_time = time.time()
-            result = func(*args, **kwargs)
+            result = await func(*args, **kwargs)
             end_time = time.time()
             print(f" | {func.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
             return result
         return wrapper
 
     @timer
-    def logical_routing(self, query: str) -> dict:
+    async def logical_routing(self, query: str) -> dict:
         """
         Route the query based on the intent identified by the LLM.
         """
         # print('start query routing')
 
-        intent_response = self.query_llm(query=query)
+        intent_response = await self.query_llm(query=query)
 
         # Parse LLM response (Basic parsing example)
         if "Time-Weighted Entity Retrieval" in intent_response:
@@ -320,10 +321,10 @@ class RagPipeline:
         return {"intent": intent, "llm_response": intent_response}
 
     # 날짜를 계산하는 LLM 함수
-    def date_cal(self, query: str) -> list:
+    async def date_cal(self, query: str) -> list:
         import json
         
-        llm_output = self.date_cal_llm(query=query)
+        llm_output = await self.date_cal_llm(query=query)
         
         if "start_date" and "end_date" not in llm_output:
             print('No data: start_date or end_date')
@@ -387,7 +388,7 @@ class RagPipeline:
 
         return date_list
 
-    def extract_session_numbers(self, query: str) -> list:
+    async def extract_session_numbers(self, query: str) -> list:
         """
         Sends the query to the LLM and extracts session numbers.
 
@@ -398,7 +399,7 @@ class RagPipeline:
             list: A list of session numbers or an error message.
         """
 
-        llm_output = self.session_cal_llm(query=query)
+        llm_output = await self.session_cal_llm(query=query)
 
         try:
             # Try to parse the LLM output as JSON
@@ -558,7 +559,7 @@ class RagPipeline:
 
 
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
-    def get_answer(self,result):
+    async def get_answer(self,result):
         # "Sources: [...]" 패턴을 제거
         clean_answer = re.sub(r"Sources: \[.*?\]", "", result['answer'], flags=re.DOTALL)
         sources_list =  self.extract_sources(result['answer'])
@@ -576,10 +577,10 @@ class RagPipeline:
         return question_answer_chain
 
     @timer
-    def timeweighted_LLM(self, query: str) -> dict:
+    async def timeweighted_LLM(self, query: str) -> dict:
         # 체인 실행
             # retriever에 직접 search_kwargs 설정
-        docs = self.hybird_retriever.invoke(
+        docs = await self.hybird_retriever.ainvoke(
             query,
             search_kwargs={
                 'filter': {
@@ -589,7 +590,7 @@ class RagPipeline:
             }
         )
             # 검색된 문서로 chain 실행
-        result = self.question_answer_chain.invoke({
+        result = await self.question_answer_chain.ainvoke({
             "input": query,
             "context": docs,  # 검색된 문서 전달
             "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
@@ -608,8 +609,8 @@ class RagPipeline:
         }
 
     @timer
-    def hybird_dense_sparse_LLM(self, query: str) -> dict:
-        docs = self.hybird_retriever.invoke(
+    async def hybird_dense_sparse_LLM(self, query: str) -> dict:
+        docs = await self.hybird_retriever.ainvoke(
             query,
             search_kwargs={
                 'filter': {
@@ -618,7 +619,7 @@ class RagPipeline:
             }
         )
         # 검색된 문서로 chain 실행
-        result = self.question_answer_chain.invoke({
+        result = await self.question_answer_chain.ainvoke({
             "input": query,
             "context": docs,  # 검색된 문서 전달
             "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
@@ -639,11 +640,11 @@ class RagPipeline:
         }
 
     @timer
-    def date_filter_LLM(self, query: str, date_list: list) -> dict:
+    async def date_filter_LLM(self, query: str, date_list: list) -> dict:
         date_filtering_vectorstore = self._init_date_filter_score_retriever(date_list)
         rag_chain = create_retrieval_chain(date_filtering_vectorstore, self.question_answer_chain)
 
-        result = rag_chain.invoke(
+        result = await rag_chain.ainvoke(
             {
                 "input": query + ' 총회',
                 "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
@@ -654,13 +655,13 @@ class RagPipeline:
         return result
     
     @timer
-    def summary_filter_LLM(self, query: str, date_list: list) -> dict:
+    async def summary_filter_LLM(self, query: str, date_list: list) -> dict:
         filtering_vectorstore = self._init_summary_filter_retriever(date_list)
 
         relevant_docs = filtering_vectorstore._get_relevant_documents(" ")
 
         # 요약 작업 수행
-        answer = self.summary_chain.invoke({
+        answer = await self.summary_chain.ainvoke({
             "input": query, 
             "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN, 
             "context": relevant_docs
@@ -669,8 +670,8 @@ class RagPipeline:
         return {"input": query, "answer": answer, "context": relevant_docs}
 
     @timer
-    def journalist_filter_LLM(self, query: str, name_list: list) -> dict:
-        check = self.recent_or_global_cal_llm(query)
+    async def journalist_filter_LLM(self, query: str, name_list: list) -> dict:
+        check = await self.recent_or_global_cal_llm(query)
         if 'recent' in check:
             type = 'recent'
         else:
@@ -678,7 +679,7 @@ class RagPipeline:
         print('type: ', type)
         jounaralist_time_filtering_retriever = self._init_jounaralist_time_filter_retriever(name_list, type)
         rag_chain = create_retrieval_chain(jounaralist_time_filtering_retriever, self.journalist_chain)
-        result = rag_chain.invoke(
+        result = await rag_chain.ainvoke(
             {
                 "input": query,
                 "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
@@ -690,61 +691,61 @@ class RagPipeline:
 
     
     @timer
-    def query_model_pipeline(self, query: str):
+    async def query_model_pipeline(self, query: str):
         print('*'*60)
         print('Search start time:',datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         print("query:",query)
         routing = {}
-        routing = self.logical_routing(query)
+        routing = await self.logical_routing(query)
         intent = routing.get('intent')
 
         if "Time-Weighted Entity Retrieval" in intent:
             print("----------- MODLE: TIME-WEIGHTED -----------")
-            return self.timeweighted_LLM(query)
+            return await self.timeweighted_LLM(query)
 
         elif "General Q&A Retrieval" in intent:
             print("----------- MODLE: GENERAL Q&A -----------")
-            return self.hybird_dense_sparse_LLM(query)
+            return await self.hybird_dense_sparse_LLM(query)
 
         elif "Session" in intent:
             print("----------- MODLE: SESSION -----------")
-            sessions = self.extract_session_numbers(query)
+            sessions = await self.extract_session_numbers(query)
             if not sessions:
                 print("We can't get sessions. so trun to general Q&A")
-                return self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query)
 
             print(sessions)
-            return self.date_filter_LLM(query, self.session_to_date_list(sessions))
+            return await self.date_filter_LLM(query, self.session_to_date_list(sessions))
 
         elif "Date" in intent:
             print("----------- MODLE: DATE FILTERING -----------")
-            date_list = self.date_cal(query)
+            date_list = await self.date_cal(query)
             if not date_list:
                 print('date_list: ', date_list)
                 print("We can't get date_list. so trun to general Q&A")
-                return self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query)
 
-            return self.date_filter_LLM(query, date_list)
+            return await self.date_filter_LLM(query, date_list)
 
         elif "Time-Based News Summarization" in intent:
             print("----------- MODLE: NEWS SUMMARIZATION -----------")
-            date_list = self.date_cal(query)
+            date_list = await self.date_cal(query)
             if not date_list:
                 print('date_list: ', date_list)
                 print("We can't get date_list. so trun to general Q&A")
-                return self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query)
 
-            return self.summary_filter_LLM(query, date_list)
+            return await self.summary_filter_LLM(query, date_list)
 
         elif "Journalist-Related Query" in intent:
             print("----------- MODLE: JOURNALIST-RELATED QUERY -----------")
-            name_list = self.extract_journalist_names(query)
+            name_list = await self.extract_journalist_names(query)
             if not name_list:
                 print('name_list: ', name_list)
                 print("We can't get name_list. So turn to genernal Q&A")
-                return self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query)
             print(f'Journalist name list: {name_list}')
-            return self.journalist_filter_LLM(query, name_list)
+            return await self.journalist_filter_LLM(query, name_list)
 
 
 
