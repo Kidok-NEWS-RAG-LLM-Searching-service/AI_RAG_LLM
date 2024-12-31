@@ -190,7 +190,8 @@ def date_cal_prompt_user_2(query:str):
 def date_cal_prompt_user_3(query: str):
     return (
         f"""
-        You are a highly intelligent assistant skilled in understanding and interpreting time-related queries written in Korean. Your task is to analyze the given query and convert any natural language date expressions into exact date ranges (start_date and end_date). Use the following rules to interpret the query:
+        You are a highly intelligent assistant skilled in understanding and interpreting time-related queries written in Korean or number.
+        Your task is to analyze the given query and convert any natural language date expressions into exact date ranges (start_date and end_date). Use the following rules to interpret the query:
 
         Current time(today): {datetime.now().strftime("%Y-%m-%d")}
 
@@ -209,8 +210,10 @@ def date_cal_prompt_user_3(query: str):
            - For month-based expressions (e.g., "12월"), calculate the first and last day of the specified month.
            - For year-based expressions (e.g., "2023년", "작년", "내년", "24년", "99년도", "14년", "올해", "금년"), calculate the first and last day of the specified year.
            - For general terms like "최근", interpret as the last 14 days from Current time.
+           
+        3. Query can include multiple date ranges. you should calculate all date ranges.
 
-        3. If the query cannot be interpreted into a valid date range, respond with:
+        4. If the query cannot be interpreted into a valid date range, respond with:
            "The query does not specify a valid time frame."
 
         ### Output Format
