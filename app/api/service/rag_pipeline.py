@@ -157,13 +157,7 @@ class RagPipeline:
         
     def hybird_dense_sparse_retriever(self):
         pinecone_params = self._init_pinecone_index()
-        return NewPineconeKiwiHybridRetriever(**pinecone_params,
-            search_kwargs={
-                'filter': {
-                    'section': {'$nin': ['기독AD']}, 
-                }
-            }
-        )
+        return NewPineconeKiwiHybridRetriever(**pinecone_params)
 
 
     def _init_timeweighted_retriever(self):
@@ -557,7 +551,7 @@ class RagPipeline:
                         "journalist_name": meta['journalist_name']
                     }
                     sources_list[ind] = 'PASS'
-                    # print(source[ind])
+                    # print(source[ind]) 
 
         print(f'Check Halucinated sources: {sources_list}')
         return source
@@ -596,7 +590,7 @@ class RagPipeline:
             }
         )
         end_time = time.time()
-        print(f" | {self.hybird_retriever._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        print(f" | {self.hybird_retriever._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
             # 검색된 문서로 chain 실행
         result = await self.question_answer_chain.ainvoke({
             "input": query,
@@ -629,7 +623,7 @@ class RagPipeline:
         )
         end_time = time.time()
         print('end_time: ', end_time)
-        print(f" | {self.hybird_retriever._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        print(f" | {self.hybird_retriever._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
         # start_time = time.time()
         # docs = await self.hybird_retriever.ainvoke(
             # query,
@@ -676,7 +670,7 @@ class RagPipeline:
         docs = await date_filtering_vectorstore._aget_relevant_documents(query+' 총회')
         end_time = time.time()
         print('end_time: ', end_time)
-        print(f" | {date_filtering_vectorstore._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        print(f" | {date_filtering_vectorstore._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
         # rag_chain = create_retrieval_chain(date_filtering_vectorstore, self.question_answer_chain)
 
         # result = await rag_chain.ainvoke(
@@ -703,10 +697,20 @@ class RagPipeline:
 
         start_time = time.time()
         print('start_time: ', start_time)
-        relevant_docs = await filtering_vectorstore._aget_relevant_documents(" ")
+        relevant_docs = await filtering_vectorstore._aget_relevant_documents("query")
+        # relevant_docs = await filtering_vectorstore._aget_relevant_documents(
+        #     query,
+        #     search_kwargs={
+        #         'k': 50,
+        #         "filter": {
+        #             "init_date": {"$in": date_list},
+        #             "section": {"$nin": ['설교', '기독AD', '오피니언']}
+        #         },
+        #         'setting': "summary and no_query_embedding"
+        #     })
         end_time = time.time()
         print('end_time: ', end_time)
-        print(f" | {filtering_vectorstore._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        print(f" | {filtering_vectorstore._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
 
         # 요약 작업 수행
         answer = await self.summary_chain.ainvoke({
@@ -733,7 +737,7 @@ class RagPipeline:
         docs = await jounaralist_time_filtering_retriever._aget_relevant_documents(query)
         end_time = time.time()
         print('end_time: ', end_time)
-        print(f" | {jounaralist_time_filtering_retriever._get_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        print(f" | {jounaralist_time_filtering_retriever._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
         # rag_chain = create_retrieval_chain(jounaralist_time_filtering_retriever, self.journalist_chain)
         
         # result = await rag_chain.ainvoke(

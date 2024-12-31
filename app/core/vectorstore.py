@@ -11,10 +11,14 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 import functools
 import asyncio
+import multiprocessing
 
 class CustomPineconeVectorStore(VectorStore):
     def __init__(self, base_store: PineconeVectorStore):
         self.base_store = base_store  # 기존 PineconeVectorStore 객체를 저장
+        cpu_count = multiprocessing.cpu_count()
+        print('CustomPineconeVectorStore __init__ - cpu_count*2: ', cpu_count*2)
+        self.thread_pool = ThreadPoolExecutor(max_workers=cpu_count * 2)
 
     # 기존 PineconeVectorStore의 from_texts 호출
     @classmethod
@@ -181,6 +185,7 @@ class CustomPineconeVectorStore(VectorStore):
         if namespace is None:
             namespace = self._namespace
 
+        print('setting: ', setting)
         if 'no_query_embedding' in setting:
             results = await loop.run_in_executor(
                 self.thread_pool,
@@ -206,12 +211,15 @@ class CustomPineconeVectorStore(VectorStore):
                 )
             )
 
-        # 문서 처리 로직도 ThreadPool에서 처리
+        # text_keys를 미리 가져오기
+        text_keys = getattr(self.base_store, "_text_key", [])
+        
+        # 결과 처리를 실행
         docs = await loop.run_in_executor(
             self.thread_pool,
-            self._process_results,
-            results, text_keys=getattr(self.base_store, "_text_key", [])
+            lambda: self._process_results(results, text_keys)
         )
+
         
         
         # docs = []
@@ -243,6 +251,7 @@ class CustomPineconeVectorStore(VectorStore):
         #             f"Found document with no `{self._text_key}` key. Skipping."
         #         )
 
+        print('search_type: ', search_type)
         # 결과 필터링 및 반환도 ThreadPool에서 처리
         if 'summary' in setting:
             return await loop.run_in_executor(
@@ -307,26 +316,31 @@ class CustomPineconeVectorStore(VectorStore):
     #     """비동기 유사도 검색"""
     #     return await self.base_store.asimilarity_search(query, k=k, **kwargs)
 
-    # async def asimilarity_search_with_score(
-    #     self, query: str, **kwargs: Any
-    # ) -> List[Tuple[Document, float]]:
-    #     """비동기 점수 포함 유사도 검색"""
-    #     embedding = await self._aembed_query(query)
-    #     combined_kwargs = {}
-    #     if hasattr(self, 'search_kwargs'):
-    #         combined_kwargs.update(self.search_kwargs)
-    #     combined_kwargs.update(kwargs)
+    async def asimilarity_search_with_score(
+        self, query: str, **kwargs: Any
+    ) -> List[Tuple[Document, float]]:
+        """비동기 점수 포함 유사도 검색"""
+        embedding = await self._aembed_query(query)
+        combined_kwargs = {}
+        if hasattr(self, 'search_kwargs'):
+            combined_kwargs.update(self.search_kwargs)
+        combined_kwargs.update(kwargs)
         
-    #     return await self.asimilarity_search_by_vector_with_score(
-    #         embedding, **combined_kwargs
-    #     )
+        return await self.asimilarity_search_by_vector_with_score(
+            embedding, **combined_kwargs
+        )
 
-    # async def _aembed_query(self, query: str) -> List[float]:
-    #     """비동기 쿼리 임베딩"""
-    #     if hasattr(self.base_store._embedding, "aembed_query"):
-    #         return await self.base_store._embedding.aembed_query(query)
-    #     # 비동기 메서드가 없으면 동기 메서드 사용
-    #     return self.base_store._embedding.embed_query(query)
+    async def _aembed_query(self, query: str) -> List[float]:
+        """비동기 쿼리 임베딩"""
+        if hasattr(self.base_store._embedding, "aembed_query"):            
+            return await self.base_store._embedding.aembed_query(query)
+        # 비동기 메서드가 없으면 동기 메서드 사용
+        return self.base_store._embedding.embed_query(query)
+    
+    def __del__(self):
+        # 객체가 소멸될 때 thread_pool을 정리
+        if hasattr(self, 'thread_pool'):
+            self.thread_pool.shutdown()
 
     # 나머지 메서드는 기본 PineconeVectorStore의 메서드를 호출
     def __getattr__(self, name):

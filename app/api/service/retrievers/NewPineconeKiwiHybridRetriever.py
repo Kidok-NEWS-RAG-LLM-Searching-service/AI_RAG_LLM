@@ -6,6 +6,8 @@ from pydantic import ConfigDict, model_validator
 from typing import List, Dict, Any, Optional, Tuple
 import asyncio
 from functools import partial
+from concurrent.futures import ThreadPoolExecutor
+import multiprocessing
 
 class NewPineconeKiwiHybridRetriever(BaseRetriever):
     """
@@ -30,8 +32,16 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
     alpha: float = 0.5
     namespace: Optional[str] = None
     pc: Any = None
+    thread_pool: Any = None  # 이 줄을 추가
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 원하는 스레드 수로 ThreadPoolExecutor 생성
+        cpu_count = multiprocessing.cpu_count()
+        print('NewPineconeKiwiHybridRetriever __init__ - cpu_count*2: ', cpu_count*2)
+        self.thread_pool = ThreadPoolExecutor(max_workers=cpu_count * 2)
 
     @model_validator(mode="after")
     def validate_environment(cls, values: Dict) -> Dict:
@@ -320,14 +330,14 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
             List[Document]: 관련 문서 리스트
         """
 
-
+        
         # 알파 값 가져오기
         alpha = self._get_alpha(search_kwargs)
         
         # 쿼리 인코딩 (CPU 작업이므로 ThreadPoolExecutor에서 실행)
         loop = asyncio.get_event_loop()
         encode_func = partial(self._encode_query, query, alpha)
-        dense_vec, sparse_vec = await loop.run_in_executor(None, encode_func)
+        dense_vec, sparse_vec = await loop.run_in_executor(self.thread_pool, encode_func)
         
         # 쿼리 파라미터 구성
         query_params = self._build_query_params(
@@ -336,7 +346,7 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
 
         # Pinecone 쿼리를 별도 스레드에서 실행 (병렬 처리)
         query_response = await loop.run_in_executor(
-            None, 
+            self.thread_pool, 
             partial(self.index.query, **query_params)
         )
 
@@ -380,7 +390,7 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
             # Pinecone rerank API 호출 (I/O 작업이므로 비동기로 처리)
             loop = asyncio.get_event_loop()
             reranked_result = await loop.run_in_executor(
-                None,
+                self.thread_pool,
                 partial(
                     self.pc.inference.rerank,
                     model=rerank_model,

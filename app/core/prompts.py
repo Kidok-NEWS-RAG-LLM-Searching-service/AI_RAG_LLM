@@ -192,7 +192,7 @@ def date_cal_prompt_user_3(query: str):
         f"""
         You are a highly intelligent assistant skilled in understanding and interpreting time-related queries written in Korean. Your task is to analyze the given query and convert any natural language date expressions into exact date ranges (start_date and end_date). Use the following rules to interpret the query:
 
-        Current time: {datetime.now().strftime("%Y-%m-%d")}
+        Current time(today): {datetime.now().strftime("%Y-%m-%d")}
 
         ### Rules for interpreting the query:
         1. Recognize and interpret natural language expressions of time in Korean, such as:
@@ -200,19 +200,17 @@ def date_cal_prompt_user_3(query: str):
            - Relative weeks: Examples include "지난주", "이번주", "다음주".
            - Relative months: Examples include "지난달", "이번달", "다음달".
            - Specific months: Examples include "1월", "12월".
-           - Specific years: Examples include "2023년", "작년", "내년", "24년", "99년도", "14년", "올해".
-           - General periods: Examples include "최근", "최신", "금년".
+           - Specific years: Examples include "2023년", "작년", "내년", "24년", "99년도", "14년", "올해", "금년".
+           - General periods: Examples include "최근", "최신".
 
         2. Convert all recognized expressions into exact date ranges:
            - For single-day expressions (e.g., "어제", "오늘"), the start_date and end_date should be the same.
            - For week-based expressions (e.g., "지난주"), calculate the exact start and end dates of the specified week.
            - For month-based expressions (e.g., "12월"), calculate the first and last day of the specified month.
-           - For year-based expressions (e.g., "2023년", "작년", "내년", "24년", "99년도", "14년", "올해"), calculate the first and last day of the specified year.
-           - For general terms like "최근", interpret as the last 14 days from today.
+           - For year-based expressions (e.g., "2023년", "작년", "내년", "24년", "99년도", "14년", "올해", "금년"), calculate the first and last day of the specified year.
+           - For general terms like "최근", interpret as the last 14 days from Current time.
 
-        3. Exclude today's date unless explicitly mentioned in the query.
-
-        4. If the query cannot be interpreted into a valid date range, respond with:
+        3. If the query cannot be interpreted into a valid date range, respond with:
            "The query does not specify a valid time frame."
 
         ### Output Format
