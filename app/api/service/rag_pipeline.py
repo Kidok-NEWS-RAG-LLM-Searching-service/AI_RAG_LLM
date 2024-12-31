@@ -13,6 +13,8 @@ from langchain.chains.retrieval import create_retrieval_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
 
+from app.api.repository.ai_model_performance_repository import ai_model_performance_log_repository
+from app.api.repository.ai_model_performance_type import AIModelPerformanceType
 from app.api.service.encoders.encoders import sparse_encoder
 from app.api.service.logs.log import put_search_response_tracking
 from app.api.service.managers.stop_words_manager import StopwordsManager
@@ -297,6 +299,7 @@ class RagPipeline:
         Route the query based on the intent identified by the LLM.
         """
         # print('start query routing')
+        start_time = time.time()
 
         intent_response = self.query_llm(query=query)
 
@@ -316,6 +319,12 @@ class RagPipeline:
         else:
             intent = "General Q&A Retrieval"
 
+        # query routing loging example
+        ai_model_performance_log_repository.put_item(
+            AIModelPerformanceType.QUERY_ROUTING,
+            query_routing_start_timestamp=start_time,
+            query_routing_end_timestamp=time.time()
+        )
         # print('finish query routing')
         return {"intent": intent, "llm_response": intent_response}
 

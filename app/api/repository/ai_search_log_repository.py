@@ -17,7 +17,7 @@ class AISearchLogRepository:
             query: str = "",
             answer: str = "",
             like: int = 0,
-            description: str = ""
+            description: str = "",
     ):
         ai_search_log = {
             "id": str(uuid4()),
