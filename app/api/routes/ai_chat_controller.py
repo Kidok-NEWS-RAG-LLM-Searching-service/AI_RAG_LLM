@@ -97,11 +97,11 @@ async def get_query_result(request: QueryRequest):
     try:
         result = await rag_pipeline.query_model_pipeline(request.query)
         answer, sources_list = await rag_pipeline.get_answer(result)
-        sources = rag_pipeline.makeing_source(result, sources_list)
+        # sources = rag_pipeline.makeing_source(result, sources_list)
 
         response = {
             "rag_result": answer,
-            "sources": sources
+            "sources": sources_list
         }
         await put_search_response_tracking(query=request.query, answer=answer)
 

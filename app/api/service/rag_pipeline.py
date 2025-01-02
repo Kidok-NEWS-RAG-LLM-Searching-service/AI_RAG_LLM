@@ -52,7 +52,7 @@ class RagPipeline:
         
         self.custom_vectorstore = CustomPineconeVectorStore(base_store=self.vectorstore)
         self.jounaralist_customize_vectorstore = CustomPineconeVectorStore(base_store=self.add_jounaralist_name_customize_vectorstore)
-                
+        
         self.timeweighted_retriever = self._init_timeweighted_retriever()
         self.hybird_retriever = self.hybird_dense_sparse_retriever()
         
@@ -453,10 +453,10 @@ class RagPipeline:
             if item not in seen:
                 result.append(item)
                 seen.add(item)
-        return result[:10]
+        return result
     
         
-    def remove_hallucinated_sources(self, llm_text, source_list):
+    def remove_hallucinated_sources(self, llm_text, id_list, sources_list):
         """
         Remove source markers from the LLM text that are not in the source list.
 
@@ -468,7 +468,7 @@ class RagPipeline:
         str: The LLM text with hallucinated sources removed.
         """
         # Create a set of valid source markers
-        valid_sources = set(source_list)
+        valid_sources = set(id_list)
 
         # Find all source markers in the text
         all_sources = re.findall(r"\[\d+\]", llm_text)
@@ -479,8 +479,12 @@ class RagPipeline:
             if source_number not in valid_sources:
                 print("wrong source: ", source_number)
                 llm_text = llm_text.replace(source, "")  # Remove invalid source
-
-        return llm_text
+                if source_number in id_list:
+                    ind = id_list.index(source_number)
+                    del sources_list[ind]
+                    print('deleted source: ', id_list[ind])
+    
+        return llm_text, sources_list
     
     def replace_sources_with_indices(self, llm_text, source_list):
         """
@@ -533,16 +537,18 @@ class RagPipeline:
         # print('makeing_source len(result): ', len(result['context']))
         print(f'origin sources_list({len(sources_list)})개: {sources_list} ')
         # Initialize the source list
-        source = [0] * len(sources_list)
+        id_list = self.remove_duplicates_keep_order(sources_list)
+        sources = [0] * len(id_list)
+        pass_list = [0] * len(id_list)
         # Iterate over the context and populate the source list
         
-        for ind, id in enumerate(sources_list):
+        for ind, id in enumerate(id_list):
             for doc in result.get('context', []):
                 # print(doc.id[:-2])
                 if id == str(doc.id[:-2]):
                     # print('same id: ', id)
                     meta = doc.metadata
-                    source[ind] = {
+                    sources[ind] = {
                         "source": meta['source'],
                         "image_url": meta['images_url'],
                         "title": meta['title'],
@@ -550,11 +556,12 @@ class RagPipeline:
                         "date": f"{meta['init_date']} {meta['init_timestamp'][:-3]}",
                         "journalist_name": meta['journalist_name']
                     }
-                    sources_list[ind] = 'PASS'
+                    pass_list[ind] = 'PASS'
                     # print(source[ind]) 
-
-        print(f'Check Halucinated sources: {sources_list}')
-        return source
+                    
+        
+        print(f'Check Halucinated sources: {pass_list}')
+        return [source for source in sources if source != 0][:10], [id for id, check in zip(id_list, pass_list) if check == 'PASS'][:10]
 
 
 
@@ -562,13 +569,14 @@ class RagPipeline:
     async def get_answer(self,result):
         # "Sources: [...]" 패턴을 제거
         clean_answer = re.sub(r"Sources: \[.*?\]", "", result['answer'], flags=re.DOTALL)
-        sources_list =  self.extract_sources(result['answer'])
-        remove_duplicates_sources_list = self.remove_duplicates_keep_order(sources_list)
-        updated_answer = self.remove_hallucinated_sources(clean_answer.strip(), remove_duplicates_sources_list)
-        full_updated_answer = self.replace_sources_with_indices(updated_answer, remove_duplicates_sources_list)
+        id_list =  self.extract_sources(result['answer'])
+        sources, id_list = self.makeing_source(result, id_list)
+        # remove_duplicates_sources_list = self.remove_duplicates_keep_order(sources_list)
+        updated_answer, sources = self.remove_hallucinated_sources(clean_answer.strip(), id_list, sources)
+        full_updated_answer = self.replace_sources_with_indices(updated_answer, id_list)
         # 공백 정리
         print(f'answer: {full_updated_answer[:30]}')
-        return full_updated_answer, remove_duplicates_sources_list
+        return full_updated_answer, sources
 
     def _init_question_answer_chain(self):
         # prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template())
