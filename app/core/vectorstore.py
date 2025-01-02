@@ -64,8 +64,7 @@ class CustomPineconeVectorStore(VectorStore):
         print('get only summary page_content')
         summary_docs = docs.copy()
         for doc in summary_docs:
-            doc[0].page_content = doc[0].page_content.split(" <Content>:")[0]
-        # print('summary_docs: ', len(summary_docs))
+            doc[0].page_content = doc[0].page_content.split(" <Content>:")[0]        
         return [doc for doc, _ in summary_docs]
         # return summary_docs
 

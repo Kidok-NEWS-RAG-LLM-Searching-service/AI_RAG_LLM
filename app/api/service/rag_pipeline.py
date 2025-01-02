@@ -36,7 +36,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 class RagPipeline:
     ai_model_manager = AIModelManager()
     
-    summary_prompt = ChatPromptTemplate.from_messages(prompts.summary_prompt_template_id())
+    summary_prompt = ChatPromptTemplate.from_messages(prompts.summary_prompt_template_id_2())
     journalist_prompt = ChatPromptTemplate.from_messages(prompts.jounarlist_prompt_template_id())
     init_vectorstore = InitVectorStore()
 
@@ -431,7 +431,7 @@ class RagPipeline:
 
     # Sources 리스트 추출 함수
     @staticmethod
-    def extract_sources(answer_text:str):
+    def extract_ids(answer_text:str):
         if "Sources:" in answer_text:
             return answer_text.split("Sources: [")[-1].rstrip("]").split(", ")
         return []
@@ -474,17 +474,18 @@ class RagPipeline:
         all_sources = re.findall(r"\[\d+\]", llm_text)
 
         # Loop through all sources and remove hallucinated ones
-        for source in all_sources:
+        for source in set(all_sources):
             source_number = source.strip("[]")  # Extract the number without brackets
             if source_number not in valid_sources:
-                print("wrong source: ", source_number)
+                print("Wrong source(hallucinated) in LLM response: ", source_number)
                 llm_text = llm_text.replace(source, "")  # Remove invalid source
                 if source_number in id_list:
                     ind = id_list.index(source_number)
                     del sources_list[ind]
                     print('deleted source: ', id_list[ind])
+                    del id_list[ind]
     
-        return llm_text, sources_list
+        return llm_text, sources_list, id_list
     
     def replace_sources_with_indices(self, llm_text, source_list):
         """
@@ -501,48 +502,35 @@ class RagPipeline:
             llm_text = llm_text.replace(f"[{source}]", f"[{index}]")
         return llm_text
 
-    
+    def remove_duplicate_references(self, text):
+        def process_line(line):
+            # 정규식으로 [숫자] 추출
+            matches = re.findall(r"\[\d+\]", line)
+            # 중복 제거 및 숫자 기준 정렬
+            unique_numbers = sorted({int(match.strip('[]')) for match in matches})
+            # 정렬된 [숫자] 형식으로 변환
+            sorted_matches = ''.join(f"[{num}]" for num in unique_numbers)
+            # 라인에서 [숫자] 제거 후 정렬된 [숫자] 추가
+            line_without_refs = re.sub(r"\[\d+\]", "", line)
+            return line_without_refs.strip() + ' ' + sorted_matches
 
-    # def makeing_source(self, result):
-    #     # Extract sources list
-    #     # print('makeing_source len(result): ', len(result['context']))
-    #     sources_list =  self.extract_sources(result['answer'])
-    #     print(f'origin sources_list({len(sources_list)})개: {sources_list} ')
-    #     # Initialize the source list
-    #     source = [0] * len(sources_list)
-    #     # Iterate over the context and populate the source list
-        
-    #     for ind, id in enumerate(sources_list):
-    #         for doc in result.get('context', []):
-    #             # print(doc.id[:-2])
-    #             if id == str(doc.id[:-2]):
-    #                 # print('same id: ', id)
-    #                 meta = doc.metadata
-    #                 source[ind] = {
-    #                     "source": meta['source'],
-    #                     "image_url": meta['images_url'],
-    #                     "title": meta['title'],
-    #                     "section": meta['primary_section'],
-    #                     "date": f"{meta['init_date']} {meta['init_timestamp'][:-3]}",
-    #                     "journalist_name": meta['journalist_name']
-    #                 }
-    #                 sources_list[ind] = 'PASS'
-    #                 # print(source[ind])
-
-    #     print(f'Check Halucinated sources: {sources_list}')summary_prompt_template
-    #     return source
+        # 텍스트를 줄 단위로 나눠 처리
+        lines = text.split('\n')
+        processed_lines = [process_line(line) for line in lines]
+        return '\n'.join(processed_lines)
     
-    def makeing_source(self, result, sources_list):
+    def makeing_source(self, result, id_list):
         # Extract sources list
         # print('makeing_source len(result): ', len(result['context']))
-        print(f'origin sources_list({len(sources_list)})개: {sources_list} ')
+        print(f'origin id_list({len(id_list)})개: {id_list}')
         # Initialize the source list
-        id_list = self.remove_duplicates_keep_order(sources_list)
-        sources = [0] * len(id_list)
-        pass_list = [0] * len(id_list)
+        remove_duplicates_id_list = self.remove_duplicates_keep_order(id_list)
+        print(f'remove_duplicates_id_list({len(remove_duplicates_id_list)})개: {remove_duplicates_id_list}')
+        sources = [0] * len(remove_duplicates_id_list)
+        check_id_list = remove_duplicates_id_list.copy()
         # Iterate over the context and populate the source list
         
-        for ind, id in enumerate(id_list):
+        for ind, id in enumerate(remove_duplicates_id_list):
             for doc in result.get('context', []):
                 # print(doc.id[:-2])
                 if id == str(doc.id[:-2]):
@@ -556,27 +544,28 @@ class RagPipeline:
                         "date": f"{meta['init_date']} {meta['init_timestamp'][:-3]}",
                         "journalist_name": meta['journalist_name']
                     }
-                    pass_list[ind] = 'PASS'
+                    check_id_list[ind] = 'PASS'
                     # print(source[ind]) 
                     
-        
-        print(f'Check Halucinated sources: {pass_list}')
-        return [source for source in sources if source != 0][:10], [id for id, check in zip(id_list, pass_list) if check == 'PASS'][:10]
-
+        pass_id_list = [id for id, check in zip(remove_duplicates_id_list, check_id_list) if check == 'PASS']
+        print(f'Check Halucinated ids[PASS({check_id_list.count("PASS")}개), FAIL({len(check_id_list)-check_id_list.count("PASS")}개)]: {check_id_list}')
+        return [source for source in sources if source != 0][:10], pass_id_list[:10]
 
 
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
+    @timer
     async def get_answer(self,result):
         # "Sources: [...]" 패턴을 제거
-        clean_answer = re.sub(r"Sources: \[.*?\]", "", result['answer'], flags=re.DOTALL)
-        id_list =  self.extract_sources(result['answer'])
-        sources, id_list = self.makeing_source(result, id_list)
-        # remove_duplicates_sources_list = self.remove_duplicates_keep_order(sources_list)
-        updated_answer, sources = self.remove_hallucinated_sources(clean_answer.strip(), id_list, sources)
-        full_updated_answer = self.replace_sources_with_indices(updated_answer, id_list)
+        # clean_answer = re.sub(r"Sources: \[.*?\]", "", result['answer'], flags=re.DOTALL)
+        clean_answer = re.sub(r"Sources: \[.*?\]\s*\n?", "", result['answer'], flags=re.DOTALL)
+        id_list =  self.extract_ids(result['answer'])
+        sources, pass_id_list = self.makeing_source(result, id_list)
+        updated_answer, sources, final_id_list = self.remove_hallucinated_sources(clean_answer.strip(), pass_id_list, sources)
+        full_updated_answer = self.replace_sources_with_indices(updated_answer, final_id_list)
+        final_answer = self.remove_duplicate_references(full_updated_answer)
         # 공백 정리
-        print(f'answer: {full_updated_answer[:30]}')
-        return full_updated_answer, sources
+        print(f'answer: {final_answer[:30]}')
+        return final_answer, sources
 
     def _init_question_answer_chain(self):
         # prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template())
@@ -622,7 +611,7 @@ class RagPipeline:
     async def hybird_dense_sparse_LLM(self, query: str) -> dict:
         
         start_time = time.time()
-        print('start_time: ', start_time)
+        # print('start_time: ', start_time)
         docs = await self.hybird_retriever.asimilarity_search(
             query,
             filter={
@@ -630,7 +619,7 @@ class RagPipeline:
             }
         )
         end_time = time.time()
-        print('end_time: ', end_time)
+        # print('end_time: ', end_time)
         print(f" | {self.hybird_retriever._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
         # start_time = time.time()
         # docs = await self.hybird_retriever.ainvoke(
@@ -674,10 +663,10 @@ class RagPipeline:
     async def date_filter_LLM(self, query: str, date_list: list) -> dict:
         date_filtering_vectorstore = self._init_date_filter_score_retriever(date_list)
         start_time = time.time()
-        print('start_time: ', start_time)
+        # print('start_time: ', start_time)
         docs = await date_filtering_vectorstore._aget_relevant_documents(query+' 총회')
         end_time = time.time()
-        print('end_time: ', end_time)
+        # print('end_time: ', end_time)
         print(f" | {date_filtering_vectorstore._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
         # rag_chain = create_retrieval_chain(date_filtering_vectorstore, self.question_answer_chain)
 
@@ -704,8 +693,9 @@ class RagPipeline:
         filtering_vectorstore = self._init_summary_filter_retriever(date_list)
 
         start_time = time.time()
-        print('start_time: ', start_time)
+        # print('start_time: ', start_time)
         relevant_docs = await filtering_vectorstore._aget_relevant_documents("query")
+        print('len(relevant_docs): ', len(relevant_docs))
         # relevant_docs = await filtering_vectorstore._aget_relevant_documents(
         #     query,
         #     search_kwargs={
@@ -717,7 +707,7 @@ class RagPipeline:
         #         'setting': "summary and no_query_embedding"
         #     })
         end_time = time.time()
-        print('end_time: ', end_time)
+        # print('end_time: ', end_time)
         print(f" | {filtering_vectorstore._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
 
         # 요약 작업 수행
@@ -741,10 +731,10 @@ class RagPipeline:
         
         jounaralist_time_filtering_retriever = self._init_jounaralist_time_filter_retriever(name_list, type)
         start_time = time.time()
-        print('start_time: ', start_time)
+        # print('start_time: ', start_time)
         docs = await jounaralist_time_filtering_retriever._aget_relevant_documents(query)
         end_time = time.time()
-        print('end_time: ', end_time)
+        # print('end_time: ', end_time)
         print(f" | {jounaralist_time_filtering_retriever._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
         # rag_chain = create_retrieval_chain(jounaralist_time_filtering_retriever, self.journalist_chain)
         
