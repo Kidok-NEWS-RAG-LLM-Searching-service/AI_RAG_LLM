@@ -557,11 +557,13 @@ class RagPipeline:
     async def get_answer(self,result):
         # "Sources: [...]" 패턴을 제거
         # clean_answer = re.sub(r"Sources: \[.*?\]", "", result['answer'], flags=re.DOTALL)
-        clean_answer = re.sub(r"Sources: \[.*?\]\s*\n?", "", result['answer'], flags=re.DOTALL)
+        # clean_answer = re.sub(r"Sources: \[.*?\]\s*\n?", "", result['answer'], flags=re.DOTALL)
+        clean_answer = re.sub(r"Sources: \[.*?\]\s*(\n|$)", "", result['answer'], flags=re.DOTALL)
         id_list =  self.extract_ids(result['answer'])
         sources, pass_id_list = self.makeing_source(result, id_list)
         updated_answer, sources, final_id_list = self.remove_hallucinated_sources(clean_answer.strip(), pass_id_list, sources)
         full_updated_answer = self.replace_sources_with_indices(updated_answer, final_id_list)
+        # print('full_updated_answer: ', full_updated_answer)
         final_answer = self.remove_duplicate_references(full_updated_answer)
         # 공백 정리
         print(f'answer: {final_answer[:30]}')

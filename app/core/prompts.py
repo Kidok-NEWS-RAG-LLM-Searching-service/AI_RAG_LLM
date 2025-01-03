@@ -210,7 +210,10 @@ def date_cal_prompt_user_3(query: str):
            - Relative weeks: Examples include "지난주", "이번주", "다음주".
            - Relative months: Examples include "지난달", "이번달", "다음달".
            - Specific months: Examples include "1월", "12월".
-           - Specific years: Examples include "2023년", "작년", "내년", "24년", "99년도", "재작년", "올해", "금년".
+           - Specific years: Examples include:
+             * Full year format: "1997년", "1997년도", "2023년", "2023년도"
+             * Short year format: "24년", "99년도"
+             * Relative years: "작년", "내년", "재작년", "올해", "금년"
            - General periods: Examples include "최근", "최신", "요즘".
 
         2. Convert all recognized expressions into exact date ranges:
@@ -218,8 +221,12 @@ def date_cal_prompt_user_3(query: str):
            - For week-based expressions (e.g., "지난주"), calculate the exact start and end dates of the specified week.
            - When month is specified with a relative year (e.g., "작년 12월"), MUST use that specific year that is specified in the query. 
            - For month-based expressions without year (e.g., "12월", "4월"), calculate the first and last day of the specified month.
-           - For year-based expressions (e.g., "2023년", "작년", "내년", "24년", "99년도", "재작년", "올해", "금년"), calculate the first and last day of the specified year.
-             * For specific year numbers, convert appropriately (e.g., "14년" -> "2014년")
+           - For year-based expressions:
+             * For full year format (e.g., "1997년", "1997년도"): Use the exact year as specified
+             * For short year format (e.g., "24년", "99년도"): Convert to full year based on current year
+               - If year < 100: Add 2000 for years < 24, add 1900 for years >= 24
+             * For relative years: Calculate based on current year
+           - Always process the entire year period (01-01 to 12-31)
            - For general terms like "최근, 최신, 요즘", interpret as the last 14 days from {datetime.now().strftime("%Y-%m-%d")}.
 
            
