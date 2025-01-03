@@ -37,7 +37,7 @@ class RagPipeline:
     ai_model_manager = AIModelManager()
     
     summary_prompt = ChatPromptTemplate.from_messages(prompts.summary_prompt_template_id_2())
-    journalist_prompt = ChatPromptTemplate.from_messages(prompts.jounarlist_prompt_template_id())
+    journalist_prompt = ChatPromptTemplate.from_messages(prompts.journalist_prompt_template_id_5())
     init_vectorstore = InitVectorStore()
 
     def __init__(self):
