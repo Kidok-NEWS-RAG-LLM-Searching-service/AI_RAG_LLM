@@ -1,8 +1,10 @@
+import time
 from http.client import HTTPException
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from app.api.repository.ai_model_performance_repository import ai_model_performance_log_repository
 from app.api.service.logs.log import put_search_response_tracking
 from app.api.service.rag_pipeline import rag_pipeline
 
@@ -95,9 +97,27 @@ async def get_stream_result(request: DocsRequest):
 @router.post("/query_routing", response_model=QueryResponse)
 async def get_query_result(request: QueryRequest):
     try:
+        start_log_time = time.time()
         result = await rag_pipeline.query_model_pipeline(request.query)
-        answer, sources_list = await rag_pipeline.get_answer(result)
-        # sources = rag_pipeline.makeing_source(result, sources_list)
+
+        answer, sources_list, making_sources, remove_hallucinated_sources = await rag_pipeline.get_answer(result)
+        end_log_time = time.time()
+
+        await ai_model_performance_log_repository.put_item(
+            model_type=result.get("model_type"),
+            config=result.get("config"),
+            get_document_start_timestamp=result.get("get_document_start_timestamp"),
+            get_document_end_timestamp=result.get("get_document_end_timestamp"),
+            len_document=result.get("document_length"),
+            model_duration=result.get("model_duration"),
+            query_routing_start_timestamp=start_log_time,
+            query_routing_end_timestamp=end_log_time,
+            id_list=making_sources.get("id_list"),
+            remove_duplicates_id_list=making_sources.get("remove_duplicates_id_list"),
+            check_id_list=making_sources.get("check_id_list"),
+            wrong_sources=remove_hallucinated_sources.get("wrong_sources"),
+            deleted_ids_list=remove_hallucinated_sources.get("deleted_ids_list")
+        )
 
         response = {
             "rag_result": answer,
