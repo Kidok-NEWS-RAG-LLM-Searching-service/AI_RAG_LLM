@@ -320,17 +320,11 @@ class RagPipeline:
         else:
             intent = "General Q&A Retrieval"
 
-        # query routing loging example
-        ai_model_performance_log_repository.put_item(
-            AIModelPerformanceType.QUERY_ROUTING,
-            query_routing_start_timestamp=start_time,
-            query_routing_end_timestamp=time.time()
-        )
         # print('finish query routing')
         return {"intent": intent, "llm_response": intent_response}
 
     # 날짜를 계산하는 LLM 함수
-    async def date_cal(self, query: str) -> list:
+    async def date_cal(self, query: str) -> dict:
         import json
         
         llm_output = await self.date_cal_llm(query=query)
@@ -366,7 +360,7 @@ class RagPipeline:
                         date_list.append(current_date.strftime("%Y-%m-%d"))
                         current_date += timedelta(days=1)
 
-                return date_list
+                return {"date_list": date_list, "date_range": outputs}
             
             except json.JSONDecodeError as e:
                 print(f"JSON 파싱 오류: {e}")
@@ -463,8 +457,7 @@ class RagPipeline:
                 result.append(item)
                 seen.add(item)
         return result
-    
-        
+
     def remove_hallucinated_sources(self, llm_text, id_list, sources_list):
         """
         Remove source markers from the LLM text that are not in the source list.
@@ -481,21 +474,30 @@ class RagPipeline:
 
         # Find all source markers in the text
         all_sources = re.findall(r"\[\d+\]", llm_text)
+        wrong_sources = []
+        deleted_ids_list = []
 
         # Loop through all sources and remove hallucinated ones
         for source in set(all_sources):
             source_number = source.strip("[]")  # Extract the number without brackets
             if source_number not in valid_sources:
                 print("Wrong source(hallucinated) in LLM response: ", source_number)
+                wrong_sources.append(source_number)
                 llm_text = llm_text.replace(source, "")  # Remove invalid source
                 if source_number in id_list:
                     ind = id_list.index(source_number)
                     del sources_list[ind]
                     print('deleted source: ', id_list[ind])
+                    deleted_ids_list.append(id_list[ind])
                     del id_list[ind]
-    
-        return llm_text, sources_list, id_list
-    
+        return {
+            "updated_answer": llm_text,
+            "sources": sources_list,
+            "final_id_list": id_list,
+            "wrong_sources": wrong_sources,
+            "deleted_ids_list": deleted_ids_list
+        }
+
     def replace_sources_with_indices(self, llm_text, source_list):
         """
         Replace source markers in the LLM response with indices based on the source list order.
@@ -558,7 +560,13 @@ class RagPipeline:
                     
         pass_id_list = [id for id, check in zip(remove_duplicates_id_list, check_id_list) if check == 'PASS']
         print(f'Check Halucinated ids[PASS({check_id_list.count("PASS")}개), FAIL({len(check_id_list)-check_id_list.count("PASS")}개)]: {check_id_list}')
-        return [source for source in sources if source != 0][:10], pass_id_list[:10]
+        return {
+            "sources": [source for source in sources if source != 0][:10],
+            "pass_id_list": pass_id_list[:10],
+            "id_list": id_list,
+            "remove_duplicates_id_list": remove_duplicates_id_list,
+            "check_id_list": check_id_list
+        }
 
 
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
@@ -568,15 +576,19 @@ class RagPipeline:
         # clean_answer = re.sub(r"Sources: \[.*?\]", "", result['answer'], flags=re.DOTALL)
         # clean_answer = re.sub(r"Sources: \[.*?\]\s*\n?", "", result['answer'], flags=re.DOTALL)
         clean_answer = re.sub(r"Sources: \[.*?\]\s*(\n|$)", "", result['answer'], flags=re.DOTALL)
-        id_list =  self.extract_ids(result['answer'])
-        sources, pass_id_list = self.makeing_source(result, id_list)
-        updated_answer, sources, final_id_list = self.remove_hallucinated_sources(clean_answer.strip(), pass_id_list, sources)
+        id_list = self.extract_ids(result['answer'])
+        making_sources = self.makeing_source(result, id_list)
+        remove_hallucinated_sources = self.remove_hallucinated_sources(clean_answer.strip(), making_sources.get("pass_id_list"), making_sources.get("sources"))
+
+        updated_answer = remove_hallucinated_sources.get("updated_answer")
+        sources = remove_hallucinated_sources.get("sources")
+        final_id_list = remove_hallucinated_sources.get("final_id_list")
+
         full_updated_answer = self.replace_sources_with_indices(updated_answer, final_id_list)
-        # print('full_updated_answer: ', full_updated_answer)
         final_answer = self.remove_duplicate_references(full_updated_answer)
         # 공백 정리
         print(f'answer: {final_answer[:30]}')
-        return final_answer, sources
+        return final_answer, sources, making_sources, remove_hallucinated_sources
 
     def _init_question_answer_chain(self):
         # prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template())
@@ -597,8 +609,7 @@ class RagPipeline:
                     'init_year': {'$gte': datetime.now().year-2}
             }
         )
-        end_time = time.time()
-        print(f" | {self.hybird_retriever._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
+        document_end_time = time.time()
             # 검색된 문서로 chain 실행
         result = await self.question_answer_chain.ainvoke({
             "input": query,
@@ -606,6 +617,8 @@ class RagPipeline:
             "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
             "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
         })
+
+        model_end_time = time.time()
         
         # result = self.timeweighted_rag_chain.invoke({
         #     "input": query,
@@ -615,7 +628,13 @@ class RagPipeline:
         return {
             "input": query,
             "answer": result,  # result가 dict 형태로 반환되므로
-            "context": docs
+            "context": docs,
+            "document_length": len(docs),
+            "get_document_start_timestamp": start_time,
+            "get_document_end_timestamp": document_end_time,
+            "model_duration": model_end_time - start_time,
+            "config": 0,
+            "model_type": "TIME_WEIGHTED_LLM"
         }
 
     @timer
@@ -629,9 +648,8 @@ class RagPipeline:
                 'section': {'$nin': ['기독AD']}, 
             }
         )
-        end_time = time.time()
+        document_end_time = time.time()
         # print('end_time: ', end_time)
-        print(f" | {self.hybird_retriever._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
         # start_time = time.time()
         # docs = await self.hybird_retriever.ainvoke(
             # query,
@@ -652,9 +670,9 @@ class RagPipeline:
             "input": query,
             "context": docs,  # 검색된 문서 전달
             "current_time": datetime.now().strftime("%Y년 %m월 %d일 %H시 %M분"),
-            "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
+            "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN,
         })
-        
+        model_end_time = time.time()
         # result = await self.hybrid_rag_chain.ainvoke(
         #     {
         #         "input": query,
@@ -666,19 +684,25 @@ class RagPipeline:
         return {
             "input": query,
             "answer": result,  # result가 dict 형태로 반환되므로
-            "context": docs
+            "context": docs,
+            "document_length": len(docs),
+            "get_document_start_timestamp": start_time,
+            "get_document_end_timestamp": document_end_time,
+            "model_duration": model_end_time - start_time,
+            "config": 0,
+            "model_type": "GENERAL_QNA_LLM"
         }
         # return result
 
     @timer
-    async def date_filter_LLM(self, query: str, date_list: list) -> dict:
+    async def date_filter_LLM(self, query: str, date_cal: dict) -> dict:
+        date_list = date_cal.get("date_list")
         date_filtering_vectorstore = self._init_date_filter_score_retriever(date_list)
         start_time = time.time()
         # print('start_time: ', start_time)
         docs = await date_filtering_vectorstore._aget_relevant_documents(query+' 총회')
-        end_time = time.time()
+        document_end_time = time.time()
         # print('end_time: ', end_time)
-        print(f" | {date_filtering_vectorstore._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
         # rag_chain = create_retrieval_chain(date_filtering_vectorstore, self.question_answer_chain)
 
         # result = await rag_chain.ainvoke(
@@ -691,16 +715,23 @@ class RagPipeline:
                 "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
             }
         )
+        model_end_time = time.time()
 
         return {
             "input": query,
             "answer": result,  # result가 dict 형태로 반환되므로
-            "context": docs
+            "context": docs,
+            "document_length": len(docs),
+            "get_document_start_timestamp": start_time,
+            "get_document_end_timestamp": document_end_time,
+            "model_duration": model_end_time - start_time,
+            "config": date_cal.get("date_range"),
+            "model_type": "DATE_FILTER_LLM"
         }
-        # return result
-    
+
     @timer
-    async def summary_filter_LLM(self, query: str, date_list: list) -> dict:
+    async def summary_filter_LLM(self, query: str, date_cal: dict) -> dict:
+        date_list = date_cal.get("date_list")
         filtering_vectorstore = self._init_summary_filter_retriever(date_list)
 
         start_time = time.time()
@@ -717,9 +748,8 @@ class RagPipeline:
         #         },
         #         'setting': "summary and no_query_embedding"
         #     })
-        end_time = time.time()
+        document_end_time = time.time()
         # print('end_time: ', end_time)
-        print(f" | {filtering_vectorstore._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
 
         # 요약 작업 수행
         answer = await self.summary_chain.ainvoke({
@@ -727,8 +757,19 @@ class RagPipeline:
             "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN, 
             "context": relevant_docs
         })
+        model_end_time = time.time()
 
-        return {"input": query, "answer": answer, "context": relevant_docs}
+        return {
+            "input": query,
+            "answer": answer,
+            "context": relevant_docs,
+            "document_length": len(relevant_docs),
+            "get_document_start_timestamp": start_time,
+            "get_document_end_timestamp": document_end_time,
+            "model_duration": model_end_time - start_time,
+            "config": date_cal.get("date_range"),
+            "model_type": "SUMMARY_FILTER_LLM"
+        }
 
     @timer
     async def journalist_filter_LLM(self, query: str, name_list: list) -> dict:
@@ -744,9 +785,8 @@ class RagPipeline:
         start_time = time.time()
         # print('start_time: ', start_time)
         docs = await jounaralist_time_filtering_retriever._aget_relevant_documents(query)
-        end_time = time.time()
+        document_end_time = time.time()
         # print('end_time: ', end_time)
-        print(f" | {jounaralist_time_filtering_retriever._aget_relevant_documents.__name__} 실행 시간: {end_time - start_time:.2f}초 | ")
         # rag_chain = create_retrieval_chain(jounaralist_time_filtering_retriever, self.journalist_chain)
         
         # result = await rag_chain.ainvoke(
@@ -758,12 +798,19 @@ class RagPipeline:
                 "MAX_TOKENS": self.ai_model_manager.DEFAULT_MAX_TOKEN
             }
         )
+        model_end_time = time.time()
 
         # return result
         return {
             "input": query,
             "answer": result,  # result가 dict 형태로 반환되므로
-            "context": docs
+            "context": docs,
+            "document_length": len(docs),
+            "get_document_start_timestamp": start_time,
+            "get_document_end_timestamp": document_end_time,
+            "model_duration": model_end_time - start_time,
+            "config": name_list,
+            "model_type": type.upper() + "_" + "JOURNAL_LIST_FILTER_LLM"
         }
 
     
@@ -790,19 +837,24 @@ class RagPipeline:
             if not sessions:
                 print("We can't get sessions. so trun to general Q&A")
                 return await self.hybird_dense_sparse_LLM(query)
+            date_list = self.session_to_date_list(sessions)
+            date_cal = {
+                "date_list": date_list,
+                "date_range": sessions,
+            }
 
-            print(sessions)
-            return await self.date_filter_LLM(query, self.session_to_date_list(sessions))
+            return await self.date_filter_LLM(query, date_cal)
 
         elif "Date" in intent:
             print("----------- MODLE: DATE FILTERING -----------")
-            date_list = await self.date_cal(query)
-            if not date_list:
-                print('date_list: ', date_list)
+            date_cal = await self.date_cal(query)
+
+            if not date_cal.get("date_list"):
+                print('date_list: ', date_cal.get("date_list"))
                 print("We can't get date_list. so trun to general Q&A")
                 return await self.hybird_dense_sparse_LLM(query)
 
-            return await self.date_filter_LLM(query, date_list)
+            return await self.date_filter_LLM(query, date_cal)
 
         elif "Time-Based News Summarization" in intent:
             print("----------- MODLE: NEWS SUMMARIZATION -----------")
@@ -816,7 +868,7 @@ class RagPipeline:
 
         elif "Journalist-Related Query" in intent:
             print("----------- MODLE: JOURNALIST-RELATED QUERY -----------")
-            name_list = await self.extract_journalist_names(query)
+            name_list = self.extract_journalist_names(query)
             if not name_list:
                 print('name_list: ', name_list)
                 print("We can't get name_list. So turn to genernal Q&A")
