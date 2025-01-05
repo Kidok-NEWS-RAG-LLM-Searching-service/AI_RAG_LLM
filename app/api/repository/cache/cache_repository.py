@@ -27,6 +27,7 @@ class CacheRepository:
         check_id_list: list,
         wrong_sources: list,
         deleted_ids_list: list,
+        sources_list: list
     ):
         web_log = {
             "id": str(uuid4()),
@@ -47,6 +48,7 @@ class CacheRepository:
             "len_hallucination_check_pass": check_id_list.count("PASS"),
             "hallucination_in_llm_response": wrong_sources,
             "deleted_sources_in_llm": deleted_ids_list,
+            "sources_list": sources_list,
             "timestamp": int(time.time())
         }
         await self.__cache["ai_response_cache_store"].insert_one(web_log)

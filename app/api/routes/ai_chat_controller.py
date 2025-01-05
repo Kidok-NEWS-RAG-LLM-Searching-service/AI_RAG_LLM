@@ -100,9 +100,41 @@ async def get_stream_result(request: DocsRequest):
 async def get_query_result(request: QueryRequest):
     try:
         start_log_time = time.time()
-        data = await cache_repository.get_today_cache_data()
-        if cache_service.is_cache_hit(data):
-            return ""
+        cache_data = await cache_repository.get_today_cache_data()
+        cache_information = await rag_pipeline.is_cache_hit(request.query, cache_data)
+        if cache_information.get("hit_check"):
+            answer = cache_information.get("answer")
+            sources_list = cache_information.get("sources_list")
+            response = {
+                "rag_result": answer,
+                "sources": sources_list
+            }
+            end_cache_time = time.time()
+            await ai_model_performance_log_repository.put_item(
+                answer_model_type=cache_information.get("answer_model_type"),
+                intent_model_type=cache_information.get("intent_model_type"),
+                config=cache_information.get("config"),
+                query=request.query,
+                answer=cache_information.get("answer"),
+                get_document_start_timestamp=-1,
+                get_document_end_timestamp=-1,
+                len_document=-1,
+                model_duration=cache_information.get("model_duration"),
+                query_routing_start_timestamp=start_log_time,
+                query_routing_end_timestamp=end_cache_time,
+                id_list=cache_information.get("origin_id_list"),
+                remove_duplicates_id_list=cache_information.get("remove_duplicates_id_list"),
+                check_id_list=cache_information.get("check_id_list"),
+                wrong_sources=cache_information.get("wrong_sources"),
+                deleted_ids_list=cache_information.get("deleted_ids_list"),
+                cache_information={
+                    "has_cache_hit": 1,
+                    "quoted_query": cache_information.get("query")
+                }
+            )
+            await put_search_response_tracking(query=request.query, answer=answer)
+
+            return response
 
         result, intent = await rag_pipeline.query_model_pipeline(request.query)
 
@@ -135,16 +167,17 @@ async def get_query_result(request: QueryRequest):
 
         # intent_model_type == answer_model_type &&
         # (len_hallucination_check_pass/len_remove_duplicates_id_list) >= 0.8
-        if result.get("model_type") == intent and \
-                len(making_sources.get("check_id_list").count("PASS")) / len(making_sources.get("check_id_list")) >= 0.8:
-
-
+        # print("confirm : ", result.get("model_type")[:8] == intent[:8], making_sources.get("check_id_list").count("PASS") / len(making_sources.get("check_id_list")) >= 0.8)
+        if result.get("model_type")[:8] == intent[:8] and \
+            len(making_sources.get("check_id_list")) != 0 and \
+            making_sources.get("check_id_list").count("PASS") != 0 and \
+            making_sources.get("check_id_list").count("PASS") / len(making_sources.get("check_id_list")) >= 0.8:
             await cache_repository.put_item(
                 answer_model_type=result.get("model_type"),
                 intent_model_type=intent,
                 config=result.get("config"),
                 query=request.query,
-                query_embed="",
+                query_embed=cache_information.get("query_embed"),
                 answer=answer,
                 get_document_start_timestamp=result.get("get_document_start_timestamp"),
                 get_document_end_timestamp=result.get("get_document_end_timestamp"),
@@ -152,9 +185,10 @@ async def get_query_result(request: QueryRequest):
                 model_duration=result.get("model_duration"),
                 id_list=making_sources.get("id_list"),
                 remove_duplicates_id_list=making_sources.get("remove_duplicates_id_list"),
-                check_id_list=making_sources.get("check_id_list"),
+                check_id_list=making_sources.get("hallucination_check"),
                 wrong_sources=remove_hallucinated_sources.get("wrong_sources"),
                 deleted_ids_list=remove_hallucinated_sources.get("deleted_ids_list"),
+                sources_list=sources_list
             )
 
         response = {

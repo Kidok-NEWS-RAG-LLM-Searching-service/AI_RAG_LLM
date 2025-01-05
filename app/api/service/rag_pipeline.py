@@ -634,7 +634,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": 0,
-            "model_type": "TIME_WEIGHTED_LLM"
+            "model_type": "Time-Weighted Entity Retrieval"
         }
 
     @timer
@@ -690,7 +690,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": 0,
-            "model_type": "GENERAL_QNA_LLM"
+            "model_type": "General Q&A Retrieval"
         }
         # return result
 
@@ -726,7 +726,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": date_cal.get("date_range"),
-            "model_type": "DATE_FILTER_LLM"
+            "model_type": "Filtering-Based Session/Date"
         }
 
     @timer
@@ -768,7 +768,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": date_cal.get("date_range"),
-            "model_type": "SUMMARY_FILTER_LLM"
+            "model_type": "Time-Based News Summarization"
         }
 
     @timer
@@ -810,7 +810,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": name_list,
-            "model_type": type.upper() + "_" + "JOURNAL_LIST_FILTER_LLM"
+            "model_type": "Journalist-Related Query" + "_" + type.upper()
         }
 
     
@@ -876,6 +876,34 @@ class RagPipeline:
             print(f'Journalist name list: {name_list}')
             return await self.journalist_filter_LLM(query, name_list), intent
 
+    async def is_cache_hit(self, query, data):
+        from sklearn.metrics.pairwise import cosine_similarity
+        import numpy as np
+
+        # 쿼리 임베딩 계산
+        query_embed = await self.embeddings.aembed_query(query)
+
+        # 데이터에서 모든 캐시된 쿼리 임베딩 추출
+        cache_query_embeds = np.array([item['query_embed'] for item in data])
+
+        # 모든 캐시 임베딩과 쿼리 임베딩의 코사인 유사도 계산
+        if len(cache_query_embeds) != 0:
+            similarities = cosine_similarity([query_embed], cache_query_embeds)[0]
+            print('max_score : ', similarities.max())
+
+            # 유사도 조건에 맞는 첫 번째 인덱스 가져오기
+            indices = np.where(similarities >= 0.945)[0]
+            if len(indices) > 0:
+                first_hit_index = indices[0]
+                data[first_hit_index]["hit_check"] = 1
+                data[first_hit_index]["query_embed"] = query_embed
+                return data[first_hit_index]
+
+        # 캐시 히트가 없을 경우
+        return {
+            'hit_check': 0,
+            'query_embed': query_embed,
+        }
 
 
 
