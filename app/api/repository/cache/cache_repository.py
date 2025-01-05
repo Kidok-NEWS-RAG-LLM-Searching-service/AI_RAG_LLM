@@ -29,6 +29,7 @@ class CacheRepository:
         deleted_ids_list: list,
         sources_list: list
     ):
+        check_id_list = check_id_list or []
         web_log = {
             "id": str(uuid4()),
             "answer_model_type": answer_model_type,

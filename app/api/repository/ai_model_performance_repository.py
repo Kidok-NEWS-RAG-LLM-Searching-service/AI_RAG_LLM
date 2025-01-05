@@ -48,7 +48,7 @@ class AIModelPerformanceLogRepository:
             "len_hallucination_check_pass": check_id_list.count("PASS"),
             "hallucination_in_llm_response": wrong_sources,
             "deleted_sources_in_llm": deleted_ids_list,
-            "query_routing_duration": query_routing_end_timestamp - query_routing_start_timestamp,
+            "total_duration": query_routing_end_timestamp - query_routing_start_timestamp,
             "cache": {
                 "hit": cache_information.get("has_cache_hit"),
                 "quoted_query": cache_information.get("quoted_query"),

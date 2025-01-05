@@ -124,9 +124,9 @@ async def get_query_result(request: QueryRequest):
                 query_routing_end_timestamp=end_cache_time,
                 id_list=cache_information.get("origin_id_list"),
                 remove_duplicates_id_list=cache_information.get("remove_duplicates_id_list"),
-                check_id_list=cache_information.get("check_id_list"),
-                wrong_sources=cache_information.get("wrong_sources"),
-                deleted_ids_list=cache_information.get("deleted_ids_list"),
+                check_id_list=cache_information.get("hallucination_check"),
+                wrong_sources=cache_information.get("hallucination_in_llm_response"),
+                deleted_ids_list=cache_information.get("deleted_sources_in_llm"),
                 cache_information={
                     "has_cache_hit": 1,
                     "quoted_query": cache_information.get("query")
@@ -173,7 +173,7 @@ async def get_query_result(request: QueryRequest):
             making_sources.get("check_id_list").count("PASS") != 0 and \
             making_sources.get("check_id_list").count("PASS") / len(making_sources.get("check_id_list")) >= 0.8:
             await cache_repository.put_item(
-                answer_model_type=result.get("model_type"),
+                answer_model_type=result.get("model_type"), # 삭제해도 될듯
                 intent_model_type=intent,
                 config=result.get("config"),
                 query=request.query,

@@ -570,7 +570,6 @@ class RagPipeline:
 
 
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
-    @timer
     async def get_answer(self,result):
         # "Sources: [...]" 패턴을 제거
         # clean_answer = re.sub(r"Sources: \[.*?\]", "", result['answer'], flags=re.DOTALL)
