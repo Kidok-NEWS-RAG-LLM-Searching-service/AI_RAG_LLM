@@ -133,23 +133,29 @@ async def get_query_result(request: QueryRequest):
             }
         )
 
-        await cache_repository.put_item(
-            answer_model_type=result.get("model_type"),
-            intent_model_type=intent,
-            config=result.get("config"),
-            query=request.query,
-            query_embed="",
-            answer=answer,
-            get_document_start_timestamp=result.get("get_document_start_timestamp"),
-            get_document_end_timestamp=result.get("get_document_end_timestamp"),
-            len_document=result.get("document_length"),
-            model_duration=result.get("model_duration"),
-            id_list=making_sources.get("id_list"),
-            remove_duplicates_id_list=making_sources.get("remove_duplicates_id_list"),
-            check_id_list=making_sources.get("check_id_list"),
-            wrong_sources=remove_hallucinated_sources.get("wrong_sources"),
-            deleted_ids_list=remove_hallucinated_sources.get("deleted_ids_list"),
-        )
+        # intent_model_type == answer_model_type &&
+        # (len_hallucination_check_pass/len_remove_duplicates_id_list) >= 0.8
+        if result.get("model_type") == intent and \
+                len(making_sources.get("check_id_list").count("PASS")) / len(making_sources.get("check_id_list")) >= 0.8:
+
+
+            await cache_repository.put_item(
+                answer_model_type=result.get("model_type"),
+                intent_model_type=intent,
+                config=result.get("config"),
+                query=request.query,
+                query_embed="",
+                answer=answer,
+                get_document_start_timestamp=result.get("get_document_start_timestamp"),
+                get_document_end_timestamp=result.get("get_document_end_timestamp"),
+                len_document=result.get("document_length"),
+                model_duration=result.get("model_duration"),
+                id_list=making_sources.get("id_list"),
+                remove_duplicates_id_list=making_sources.get("remove_duplicates_id_list"),
+                check_id_list=making_sources.get("check_id_list"),
+                wrong_sources=remove_hallucinated_sources.get("wrong_sources"),
+                deleted_ids_list=remove_hallucinated_sources.get("deleted_ids_list"),
+            )
 
         response = {
             "rag_result": answer,
