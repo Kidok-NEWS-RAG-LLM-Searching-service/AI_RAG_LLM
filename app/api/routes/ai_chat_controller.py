@@ -106,6 +106,8 @@ async def get_query_result(request: QueryRequest):
         await ai_model_performance_log_repository.put_item(
             model_type=result.get("model_type"),
             config=result.get("config"),
+            query=request.query,
+            answer=answer,
             get_document_start_timestamp=result.get("get_document_start_timestamp"),
             get_document_end_timestamp=result.get("get_document_end_timestamp"),
             len_document=result.get("document_length"),
