@@ -1,6 +1,4 @@
-import boto3
 import certifi
-from boto3.resources.base import ServiceResource
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.core.config import settings
@@ -13,12 +11,16 @@ class MongoDB:
     def connect(self):
         self.client = AsyncIOMotorClient(settings.mongo_db_url,tlsCAFile=certifi.where())
         self.db = self.client[settings.mongo_db_name]
+        self.cache = self.client[settings.mongo_cache_name]
 
     def close(self):
         self.client.close()
 
     def get_db(self):
         return self.db
+
+    def get_cache(self):
+        return self.cache
 
 
 mongodb = MongoDB()

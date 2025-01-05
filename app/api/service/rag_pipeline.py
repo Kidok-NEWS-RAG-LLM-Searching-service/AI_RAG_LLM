@@ -825,25 +825,25 @@ class RagPipeline:
 
         if "Time-Weighted Entity Retrieval" in intent:
             print("----------- MODLE: TIME-WEIGHTED -----------")
-            return await self.timeweighted_LLM(query)
+            return await self.timeweighted_LLM(query), intent
 
         elif "General Q&A Retrieval" in intent:
             print("----------- MODLE: GENERAL Q&A -----------")
-            return await self.hybird_dense_sparse_LLM(query)
+            return await self.hybird_dense_sparse_LLM(query), intent
 
         elif "Session" in intent:
             print("----------- MODLE: SESSION -----------")
             sessions = await self.extract_session_numbers(query)
             if not sessions:
                 print("We can't get sessions. so trun to general Q&A")
-                return await self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query), intent
             date_list = self.session_to_date_list(sessions)
             date_cal = {
                 "date_list": date_list,
                 "date_range": sessions,
             }
 
-            return await self.date_filter_LLM(query, date_cal)
+            return await self.date_filter_LLM(query, date_cal), intent
 
         elif "Date" in intent:
             print("----------- MODLE: DATE FILTERING -----------")
@@ -852,9 +852,9 @@ class RagPipeline:
             if not date_cal.get("date_list"):
                 print('date_list: ', date_cal.get("date_list"))
                 print("We can't get date_list. so trun to general Q&A")
-                return await self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query), intent
 
-            return await self.date_filter_LLM(query, date_cal)
+            return await self.date_filter_LLM(query, date_cal), intent
 
         elif "Time-Based News Summarization" in intent:
             print("----------- MODLE: NEWS SUMMARIZATION -----------")
@@ -862,9 +862,9 @@ class RagPipeline:
             if not date_list:
                 print('date_list: ', date_list)
                 print("We can't get date_list. so trun to general Q&A")
-                return await self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query), intent
 
-            return await self.summary_filter_LLM(query, date_list)
+            return await self.summary_filter_LLM(query, date_list), intent
 
         elif "Journalist-Related Query" in intent:
             print("----------- MODLE: JOURNALIST-RELATED QUERY -----------")
@@ -872,9 +872,9 @@ class RagPipeline:
             if not name_list:
                 print('name_list: ', name_list)
                 print("We can't get name_list. So turn to genernal Q&A")
-                return await self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query), intent
             print(f'Journalist name list: {name_list}')
-            return await self.journalist_filter_LLM(query, name_list)
+            return await self.journalist_filter_LLM(query, name_list), intent
 
 
 
