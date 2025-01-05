@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     upstage_api_key: str
 
     mongo_db_name: str
+    mongo_cache_name: str
     mongo_db_url: str
 
     def __init__(self, **kwargs):

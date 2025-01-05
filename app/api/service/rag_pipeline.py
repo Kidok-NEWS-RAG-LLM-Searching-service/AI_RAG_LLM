@@ -570,7 +570,6 @@ class RagPipeline:
 
 
     # Sources 뒤를 제거하여 result의 Answer(답변)만 갖는 함수
-    @timer
     async def get_answer(self,result):
         # "Sources: [...]" 패턴을 제거
         # clean_answer = re.sub(r"Sources: \[.*?\]", "", result['answer'], flags=re.DOTALL)
@@ -634,7 +633,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": 0,
-            "model_type": "TIME_WEIGHTED_LLM"
+            "model_type": "Time-Weighted Entity Retrieval"
         }
 
     @timer
@@ -690,7 +689,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": 0,
-            "model_type": "GENERAL_QNA_LLM"
+            "model_type": "General Q&A Retrieval"
         }
         # return result
 
@@ -726,7 +725,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": date_cal.get("date_range"),
-            "model_type": "DATE_FILTER_LLM"
+            "model_type": "Filtering-Based Session/Date"
         }
 
     @timer
@@ -768,7 +767,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": date_cal.get("date_range"),
-            "model_type": "SUMMARY_FILTER_LLM"
+            "model_type": "Time-Based News Summarization"
         }
 
     @timer
@@ -810,7 +809,7 @@ class RagPipeline:
             "get_document_end_timestamp": document_end_time,
             "model_duration": model_end_time - start_time,
             "config": name_list,
-            "model_type": type.upper() + "_" + "JOURNAL_LIST_FILTER_LLM"
+            "model_type": "Journalist-Related Query" + "_" + type.upper()
         }
 
     
@@ -825,25 +824,25 @@ class RagPipeline:
 
         if "Time-Weighted Entity Retrieval" in intent:
             print("----------- MODLE: TIME-WEIGHTED -----------")
-            return await self.timeweighted_LLM(query)
+            return await self.timeweighted_LLM(query), intent
 
         elif "General Q&A Retrieval" in intent:
             print("----------- MODLE: GENERAL Q&A -----------")
-            return await self.hybird_dense_sparse_LLM(query)
+            return await self.hybird_dense_sparse_LLM(query), intent
 
         elif "Session" in intent:
             print("----------- MODLE: SESSION -----------")
             sessions = await self.extract_session_numbers(query)
             if not sessions:
                 print("We can't get sessions. so trun to general Q&A")
-                return await self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query), intent
             date_list = self.session_to_date_list(sessions)
             date_cal = {
                 "date_list": date_list,
                 "date_range": sessions,
             }
 
-            return await self.date_filter_LLM(query, date_cal)
+            return await self.date_filter_LLM(query, date_cal), intent
 
         elif "Date" in intent:
             print("----------- MODLE: DATE FILTERING -----------")
@@ -852,9 +851,9 @@ class RagPipeline:
             if not date_cal.get("date_list"):
                 print('date_list: ', date_cal.get("date_list"))
                 print("We can't get date_list. so trun to general Q&A")
-                return await self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query), intent
 
-            return await self.date_filter_LLM(query, date_cal)
+            return await self.date_filter_LLM(query, date_cal), intent
 
         elif "Time-Based News Summarization" in intent:
             print("----------- MODLE: NEWS SUMMARIZATION -----------")
@@ -862,9 +861,9 @@ class RagPipeline:
             if not date_list:
                 print('date_list: ', date_list)
                 print("We can't get date_list. so trun to general Q&A")
-                return await self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query), intent
 
-            return await self.summary_filter_LLM(query, date_list)
+            return await self.summary_filter_LLM(query, date_list), intent
 
         elif "Journalist-Related Query" in intent:
             print("----------- MODLE: JOURNALIST-RELATED QUERY -----------")
@@ -872,10 +871,38 @@ class RagPipeline:
             if not name_list:
                 print('name_list: ', name_list)
                 print("We can't get name_list. So turn to genernal Q&A")
-                return await self.hybird_dense_sparse_LLM(query)
+                return await self.hybird_dense_sparse_LLM(query), intent
             print(f'Journalist name list: {name_list}')
-            return await self.journalist_filter_LLM(query, name_list)
+            return await self.journalist_filter_LLM(query, name_list), intent
 
+    async def is_cache_hit(self, query, data):
+        from sklearn.metrics.pairwise import cosine_similarity
+        import numpy as np
+
+        # 쿼리 임베딩 계산
+        query_embed = await self.embeddings.aembed_query(query)
+
+        # 데이터에서 모든 캐시된 쿼리 임베딩 추출
+        cache_query_embeds = np.array([item['query_embed'] for item in data])
+
+        # 모든 캐시 임베딩과 쿼리 임베딩의 코사인 유사도 계산
+        if len(cache_query_embeds) != 0:
+            similarities = cosine_similarity([query_embed], cache_query_embeds)[0]
+            print('max_score : ', similarities.max())
+
+            # 유사도 조건에 맞는 첫 번째 인덱스 가져오기
+            indices = np.where(similarities >= 0.945)[0]
+            if len(indices) > 0:
+                first_hit_index = indices[0]
+                data[first_hit_index]["hit_check"] = 1
+                data[first_hit_index]["query_embed"] = query_embed
+                return data[first_hit_index]
+
+        # 캐시 히트가 없을 경우
+        return {
+            'hit_check': 0,
+            'query_embed': query_embed,
+        }
 
 
 

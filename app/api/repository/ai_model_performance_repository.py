@@ -1,9 +1,7 @@
-import time
 from uuid import uuid4
 
 from boto3.resources.base import ServiceResource
 
-from app.api.repository.ai_model_performance_type import AIModelPerformanceType
 from app.core.db import mongodb
 
 
@@ -13,7 +11,8 @@ class AIModelPerformanceLogRepository:
 
     async def put_item(
             self,
-            model_type: str,
+            answer_model_type: str,
+            intent_model_type: str,
             query: str,
             answer: str,
             config: any,
@@ -27,12 +26,14 @@ class AIModelPerformanceLogRepository:
             remove_duplicates_id_list: list,
             check_id_list: list,
             wrong_sources: list,
-            deleted_ids_list: list
+            deleted_ids_list: list,
+            cache_information: dict
     ):
         ai_search_log = {
             "id": str(uuid4()),
             "query_routing_start_timestamp": query_routing_start_timestamp,
-            "model_type": model_type,
+            "answer_model_type": answer_model_type,
+            "intent_model_type": intent_model_type,
             "query": query,
             "answer": answer,
             "config": config,
@@ -47,7 +48,11 @@ class AIModelPerformanceLogRepository:
             "len_hallucination_check_pass": check_id_list.count("PASS"),
             "hallucination_in_llm_response": wrong_sources,
             "deleted_sources_in_llm": deleted_ids_list,
-            "query_routing_duration": query_routing_end_timestamp - query_routing_start_timestamp,
+            "total_duration": query_routing_end_timestamp - query_routing_start_timestamp,
+            "cache": {
+                "hit": cache_information.get("has_cache_hit"),
+                "quoted_query": cache_information.get("quoted_query"),
+            }
         }
         await self.__db["ai_model_performance"].insert_one(ai_search_log)
 
