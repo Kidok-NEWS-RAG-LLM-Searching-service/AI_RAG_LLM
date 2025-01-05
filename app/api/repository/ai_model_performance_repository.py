@@ -14,6 +14,8 @@ class AIModelPerformanceLogRepository:
     async def put_item(
             self,
             model_type: str,
+            query: str,
+            answer: str,
             config: any,
             get_document_start_timestamp: int,
             get_document_end_timestamp: int,
@@ -31,6 +33,8 @@ class AIModelPerformanceLogRepository:
             "id": str(uuid4()),
             "query_routing_start_timestamp": query_routing_start_timestamp,
             "model_type": model_type,
+            "query": query,
+            "answer": answer,
             "config": config,
             "get_document_duration": get_document_end_timestamp - get_document_start_timestamp,
             "len_document": len_document,
