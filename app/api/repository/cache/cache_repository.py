@@ -2,9 +2,8 @@ import time
 from uuid import uuid4
 
 from boto3.resources.base import ServiceResource
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app.core.db import mongodb
-
 
 class CacheRepository:
     def __init__(self, cache: ServiceResource) -> None:
@@ -56,8 +55,11 @@ class CacheRepository:
 
     async def get_today_cache_data(self):
         today = datetime.now(timezone.utc).date()
-        start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)
-        end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc)
+
+        # UTC 기준으로 오늘 시작과 끝을 구한 후 9시간을 더함
+        start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc) + timedelta(hours=9)
+        end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc) + timedelta(hours=9)
+        
         start_timestamp = int(start_of_today.timestamp())
         end_timestamp = int(end_of_today.timestamp())
 
