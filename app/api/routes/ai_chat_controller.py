@@ -100,10 +100,10 @@ async def get_stream_result(request: DocsRequest):
 async def get_query_result(request: QueryRequest):
     try:
         start_log_time = time.time()
-        print('start caching')
+        # print('start caching')
         cache_data = await cache_repository.get_today_cache_data()
         cache_information = await rag_pipeline.is_cache_hit(request.query, cache_data)
-        print(cache_information.get("hit_check"))
+        # print(cache_information.get("hit_check"))
         if cache_information.get("hit_check"):
             answer = cache_information.get("answer")
             sources_list = cache_information.get("sources_list")
