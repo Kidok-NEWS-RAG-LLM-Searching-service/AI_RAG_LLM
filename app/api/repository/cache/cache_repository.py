@@ -56,20 +56,18 @@ class CacheRepository:
     async def get_today_cache_data(self):
         today = datetime.now(timezone.utc).date()
 
-        # UTC 기준으로 오늘 시작과 끝을 구한 후 9시간을 더함
+        # 오전 6시부터 다음날 오전 6시까지 (UTC기준이기에, 아무것도 없으면 오전 9시가 기준이 된다. 그래서 -3시간을 함)
         start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)  - timedelta(hours=3)
         end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc) - timedelta(hours=3)
         
         start_timestamp = int(start_of_today.timestamp())
         end_timestamp = int(end_of_today.timestamp())
-        print(start_timestamp)
-        print(end_timestamp)
 
         data = await self.__cache["ai_response_cache_store"].find({
             "timestamp": {"$gt": start_timestamp, "$lt": end_timestamp}
         }).to_list(length=None)
 
-        print(len(data))
+        # print(len(data))
         return data
 
 

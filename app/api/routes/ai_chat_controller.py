@@ -170,12 +170,12 @@ async def get_query_result(request: QueryRequest):
         # intent_model_type == answer_model_type &&
         # (len_hallucination_check_pass/len_remove_duplicates_id_list) >= 0.8
         # print("confirm : ", result.get("model_type")[:8] == intent[:8], making_sources.get("check_id_list").count("PASS") / len(making_sources.get("check_id_list")) >= 0.8)
-        print('cache 직전')
+        # print('cache 직전')
         if result.get("model_type")[:8] == intent[:8] and \
             len(making_sources.get("check_id_list")) != 0 and \
             making_sources.get("check_id_list").count("PASS") != 0 and \
             making_sources.get("check_id_list").count("PASS") / len(making_sources.get("check_id_list")) >= 0.8:
-            print('caching중')
+            # print('caching중')
             await cache_repository.put_item(
                 answer_model_type=result.get("model_type"), # 삭제해도 될듯
                 intent_model_type=intent,
