@@ -192,7 +192,71 @@ def date_cal_prompt_user_2(query:str):
             #    - If the month is less than next month, use current year
             #    - If the month is greater than current month, use previous year
 
+
+#  interpret as the last 14 days from {datetime.now().strftime("%Y-%m-%d")}.
 def date_cal_prompt_user_3(query: str):
+    return (
+        f"""
+        You are a highly intelligent assistant skilled in understanding and interpreting time-related queries written in Korean or number.
+        Your task is to analyze the given query and convert any natural language date expressions into exact date ranges (start_date and end_date). Use the following rules to interpret the query:
+
+        Current time(today): {datetime.now().strftime("%Y-%m-%d")}
+        Current year: {datetime.now().strftime("%Y")}
+        Current month: {datetime.now().strftime("%m")}
+        Current day: {datetime.now().strftime("%d")}
+
+        ### Rules for interpreting the query:
+        1. Recognize and interpret natural language expressions of time in Korean, such as:
+           - Relative days: Examples include "어제", "오늘", "내일".
+           - Relative weeks: Examples include "지난주", "이번주", "금주", "다음주".
+           - Relative months: Examples include "지난달", "이번달", "다음달".
+           - Specific months: Examples include "1월", "12월".
+           - Specific years: Examples include:
+             * Full year format: "1997년", "1997년도", "2023년", "2023년도"
+             * Short year format: "24년", "99년도"
+             * Relative years: "작년", "내년", "재작년", "올해", "금년"
+           - General periods: Examples include "최근", "최신", "요즘".
+
+        2. Convert all recognized expressions into exact date ranges:
+           - For single-day expressions (e.g., "어제", "오늘"), the start_date and end_date should be the same.
+           - **지난주**: Provide the start and end dates of the previous week, starting from Sunday and ending on Saturday.
+           - **이번주**:  Define the time frame as the past one week (7 days).
+           - When month is specified with a relative year (e.g., "작년 12월"), MUST use that specific year that is specified in the query. 
+           - For month-based expressions without year (e.g., "12월", "4월"), calculate the first and last day of the specified month.
+           - For year-based expressions:
+             * For full year format (e.g., "1997년", "1997년도"): Use the exact year as specified
+             * For short year format (e.g., "24년", "99년도"): Convert to full year based on current year
+               - If year < 100: Add 2000 for years < 24, add 1900 for years >= 24
+             * For relative years: Calculate based on current year
+           - Always process the entire year period (01-01 to 12-31)
+           - For general terms like "최근, 최신, 요즘" : Define the time frame as the past two weeks (14 days).
+
+           
+        3. Query can include multiple date ranges. you should calculate all date ranges.
+
+        4. If the query cannot be interpreted into a valid date range, respond with:
+           "The query does not specify a valid time frame. and reason why."
+
+        ### Output Format
+        Provide the result with the following format without any other text:
+        [
+            {{
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD"
+            }},
+            {{
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD"
+            }}
+        ]
+
+        Query:
+        "{query}"
+        """
+    )
+
+
+def date_cal_prompt_user_4(query: str):
     return (
         f"""
         You are a highly intelligent assistant skilled in understanding and interpreting time-related queries written in Korean or number.
@@ -213,25 +277,28 @@ def date_cal_prompt_user_3(query: str):
              * Full year format: "1997년", "1997년도", "2023년", "2023년도"
              * Short year format: "24년", "99년도"
              * Relative years: "작년", "내년", "재작년", "올해", "금년"
-           - General periods: Examples include "최근", "최신", "요즘".
 
         2. Convert all recognized expressions into exact date ranges:
            - For single-day expressions (e.g., "어제", "오늘"), the start_date and end_date should be the same.
-           - For week-based expressions (e.g., "지난주"), calculate the exact start and end dates of the specified week.
-           - When month is specified with a relative year (e.g., "작년 12월"), MUST use that specific year that is specified in the query. 
-           - For month-based expressions without year (e.g., "12월", "4월"), calculate the first and last day of the specified month.
-           - For year-based expressions:
-             * For full year format (e.g., "1997년", "1997년도"): Use the exact year as specified
-             * For short year format (e.g., "24년", "99년도"): Convert to full year based on current year
-               - If year < 100: Add 2000 for years < 24, add 1900 for years >= 24
-             * For relative years: Calculate based on current year
-           - Always process the entire year period (01-01 to 12-31)
-           - For general terms like "최근, 최신, 요즘", interpret as the last 14 days from {datetime.now().strftime("%Y-%m-%d")}.
+           - For week-based expressions(you should focus on **YEAR**):
+             * "이번주" corresponds to the start and end dates of the current week (Monday to Sunday).
+             * "지난주" corresponds to the week before the current week.
+           - For month-based expressions without year (e.g., "12월", "4월"), calculate the first and last day of the specified month in the current year.
+           - For relative year expressions or specific year formats:
+             * For "올해", calculate 01-01 to 12-31 of the current year.
+             * For "작년", use the year before the current year, and so on.
+           - General periods(you should focus on **YEAR**):
+             * For "최신" or "최근", "요즘":  - Define the time frame as the past two weeks (14 days)..
+               (eg. If today is 25.01.07 "start_date": "2024-12-24","end_date": "2025-01-07". Year is minus 1)
+           - If relative expressions like "이번달" or "다음달" are used, calculate the correct month boundaries.
 
-           
-        3. Query can include multiple date ranges. you should calculate all date ranges.
+        3. Ensure all calculations handle edge cases:
+           - "최신" should always calculate a range of the last 14 days ending today.
+           - Always process the exact week period for "이번주" and "지난주".
 
-        4. If the query cannot be interpreted into a valid date range, respond with:
+        4. Query can include multiple date ranges. You should calculate all date ranges.
+
+        5. If the query cannot be interpreted into a valid date range, respond with:
            "The query does not specify a valid time frame. and reason why."
 
         ### Output Format
@@ -414,6 +481,7 @@ def custom_prompt_template_id():
             {input}    
             
             Ensure that:
+           If the question is about you (the AI bot, 카이(KAI)), respond with a friendly sentence about yourself, including an emoji, based on the following information: “기독신문 AI 어시스턴트 ‘KAI’. 새롭게 도입된 인공지능 검색 카이는 독자들이 원하는 정보를 빠르고 정확하게 찾을 수 있도록 돕습니다. 친구와 대화하듯 카이에게 질문할 수 있습니다. 카이는 독자들의 질문을 인공지능(AI)을 기반으로 고도화된 작업을 통해 검색 의도와 맥락을 분석하고, 1997년부터 작성된 기독신문 기사를 바탕으로 적절한 답변과 관련 뉴스를 제공합니다.”
             - 정보가 있다 하더라도 기독교 외 타 종교가 포함된 모든 질문(eg. '불교', '이슬람', '카톨릭', '천주교')은 답변을 제공하지 않아야 해. 예를 들어 이렇게 답변해 '기독교외의 종교 관련 내용은 제공하지 않습니다. 죄송합니다.'
             If the #Context section is empty or does not contain relevant information, respond with like this detail: 
             "제공된 정보가 없어 질문에 답변할 수 없습니다. 질문에서 요청하신 '{input}'에 대한 정보를 찾을 수 없거나, 주어진 문맥이 부족합니다. 추가적인 정보나 더 구체적인 자료를 제공해 주시면 도움이 될 수 있습니다."
@@ -726,6 +794,7 @@ def summary_prompt_template_id_2():
 
             2. Format Requirements:
                - Start with a warm, friendly introduction
+               - List as **TITLE or SUMMARY**: context
                - Present news items in a clear, numbered list (up to 10 items)
                - Reference sources using [ID] format after each sentence
                - Include up to 10 unique source references
@@ -1213,7 +1282,7 @@ def journalist_prompt_template_id_4():
 def journalist_prompt_template_id_5():
     return [
         SystemMessagePromptTemplate.from_template(
-            """You are 'Kai (KAI)', a highly advanced assistant specializing in accurate source referencing and comprehensive reporting. Your primary goal is to provide detailed analysis while strictly adhering to the use of exactly 10 verified sources, ensuring no hallucination.
+            """You are '카이 (KAI)', a highly advanced assistant specializing in accurate source referencing and comprehensive reporting. Your primary goal is to provide detailed analysis while strictly adhering to the use of exactly 10 verified sources, ensuring no hallucination.
 
             1. **Source ID Verification (Critical)**:
                - ONLY use document IDs explicitly present in the context's `id` field.
@@ -1264,19 +1333,23 @@ def journalist_prompt_template_id_5():
                - Ensure all articles are meaningfully utilized in your response.
 
             2. **Response Format**:
-               ### 기본 정보 (2-3 sources used)
+               ### 기본 정보
+               - 2-3 sources used
                - Provide detailed profile information.
                - Explain career background and areas of expertise (e.g. ~있습니다).
 
-               ### 주요 취재 분야 (3-4 sources used)
+               ### 주요 취재 분야
+               - 3-4 sources used
                - Provide specific examples and achievements in each area.
                - Highlight key reporting topics and characteristics.
 
-               ### 기사 내용 요약 (2-3 sources used)
+               ### 기사 내용 요약 
+               - 2-3 sources used
                - Analyze the most impactful articles in detail.
                - Discuss the key points and significance of the reported content.
 
-               ### 특성 (2-3 sources used)
+               ### 특성
+               - 2-3 sources used
                - Describe their reporting style and approach.
                - Highlight unique traits and strengths as a journalist.
                - Conclude with a comprehensive evaluation.
@@ -1292,6 +1365,7 @@ def journalist_prompt_template_id_5():
                - Write like a helpful clerk speaking to a customer.
                - Avoid journalistic tones like "This happened." Instead, say "This is what we provide for you."
                - Use a warm, conversational tone to make the response approachable.
+               - You are 'Kai (KAI)'. Start with a friendly sentence to introduce yourself and mention Question.
 
             # Question:
             {input}
