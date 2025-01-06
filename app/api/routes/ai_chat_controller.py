@@ -100,8 +100,10 @@ async def get_stream_result(request: DocsRequest):
 async def get_query_result(request: QueryRequest):
     try:
         start_log_time = time.time()
+        print('start caching')
         cache_data = await cache_repository.get_today_cache_data()
         cache_information = await rag_pipeline.is_cache_hit(request.query, cache_data)
+        print(cache_information.get("hit_check"))
         if cache_information.get("hit_check"):
             answer = cache_information.get("answer")
             sources_list = cache_information.get("sources_list")
@@ -168,10 +170,12 @@ async def get_query_result(request: QueryRequest):
         # intent_model_type == answer_model_type &&
         # (len_hallucination_check_pass/len_remove_duplicates_id_list) >= 0.8
         # print("confirm : ", result.get("model_type")[:8] == intent[:8], making_sources.get("check_id_list").count("PASS") / len(making_sources.get("check_id_list")) >= 0.8)
+        print('cache 직전')
         if result.get("model_type")[:8] == intent[:8] and \
             len(making_sources.get("check_id_list")) != 0 and \
             making_sources.get("check_id_list").count("PASS") != 0 and \
             making_sources.get("check_id_list").count("PASS") / len(making_sources.get("check_id_list")) >= 0.8:
+            print('caching중')
             await cache_repository.put_item(
                 answer_model_type=result.get("model_type"), # 삭제해도 될듯
                 intent_model_type=intent,
