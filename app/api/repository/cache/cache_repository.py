@@ -57,16 +57,19 @@ class CacheRepository:
         today = datetime.now(timezone.utc).date()
 
         # UTC 기준으로 오늘 시작과 끝을 구한 후 9시간을 더함
-        start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc) + timedelta(hours=9)
-        end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc) + timedelta(hours=9)
+        start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)  - timedelta(hours=3)
+        end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc) - timedelta(hours=3)
         
         start_timestamp = int(start_of_today.timestamp())
         end_timestamp = int(end_of_today.timestamp())
+        print(start_timestamp)
+        print(end_timestamp)
 
         data = await self.__cache["ai_response_cache_store"].find({
             "timestamp": {"$gt": start_timestamp, "$lt": end_timestamp}
         }).to_list(length=None)
 
+        print(len(data))
         return data
 
 
