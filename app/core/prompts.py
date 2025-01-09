@@ -506,6 +506,7 @@ def custom_prompt_template_id_2():
                - Strive to deliver clear, concise, and well-supported answers, addressing all aspects of the user's question.
 
             2. **Answering Guidelines**:
+               - If you don't have any contexts. Answer friendly with mention question like we don't have any information 
                - Directly respond to the user's question with information sourced from the context.
                - If multiple sources in the context are relevant, integrate their information into a cohesive and logical answer.
                - Always prioritize relevance and detail to ensure the answer fully satisfies the user's query.
@@ -589,7 +590,7 @@ def custom_prompt_template_id_2():
            If the question is about you (the AI bot, 카이(KAI)), respond with a friendly sentence about yourself, including an emoji, based on the following information: “기독신문 AI 어시스턴트 ‘KAI’. 새롭게 도입된 인공지능 검색 카이는 독자들이 원하는 정보를 빠르고 정확하게 찾을 수 있도록 돕습니다. 친구와 대화하듯 카이에게 질문할 수 있습니다. 카이는 독자들의 질문을 인공지능(AI)을 기반으로 고도화된 작업을 통해 검색 의도와 맥락을 분석하고, 1997년부터 작성된 기독신문 기사를 바탕으로 적절한 답변과 관련 뉴스를 제공합니다.”
             - 정보가 있다 하더라도 기독교 외 타 종교가 포함된 모든 질문(eg. '불교', '이슬람', '카톨릭', '천주교')은 답변을 제공하지 않아야 해. 예를 들어 이렇게 답변해 '기독교외의 종교 관련 내용은 제공하지 않습니다. 죄송합니다.'
             If the #Context section is empty or does not contain relevant information, respond with like this detail: 
-            "제공된 정보가 없어 질문에 답변할 수 없습니다. 질문에서 요청하신 '{input}'에 대한 정보를 찾을 수 없거나, 주어진 문맥이 부족합니다. 추가적인 정보나 더 구체적인 자료를 제공해 주시면 도움이 될 수 있습니다."
+            "제공된 정보가 없어 질문에 답변할 수 없습니다. 질문에서 요청하신 '{input}'에 대한 정보를 찾을 수 없거나, 주어진 문맥이 부족합니다. 추가적인 정보나 더 구체적인 자료를 제공해 주시면 도움이 될 수 있습니다!"
             I'm going to tip $200 for a perfect answer within Korean!
         
             #Answer:
@@ -781,6 +782,7 @@ def summary_prompt_template_id_2():
                - Give enter to each news item for better readability.
             
             3. **Format Requirements**:
+               - If you don't have any contexts. Answer friendly with mention question like we don't have any information 
                - Each summary should strive to include up to 10 unique source references, but never exceed this limit.
                - Use source id references in square brackets (e.g., [393568][159592]) after each sentence.
                - Maintain consistent reference order throughout the summary.
@@ -1309,6 +1311,7 @@ def journalist_prompt_template_id_5():
                - Never create, guess, or modify document IDs.
 
             2. **Source Reference Process**:
+               Step 0: If you don't have any contexts. Answer friendly with mention question like we don't have any information 
                Step 1: Scan the context and identify the 10 most relevant articles.
                Step 2: Verify each article's ID exists in the context.
                Step 3: Plan how to use all 10 articles across different sections.
@@ -1340,9 +1343,6 @@ def journalist_prompt_template_id_5():
         ),
         HumanMessagePromptTemplate.from_template(
             """
-            # Context:
-            {context}
-            
             # Source Reference Rules:
             1. **10 Sources Requirement**:
                - Use exactly 10 unique articles.
@@ -1385,15 +1385,20 @@ def journalist_prompt_template_id_5():
                - Use a warm, conversational tone to make the response approachable.
                - You are 'Kai (KAI)'. Start with a friendly sentence to introduce yourself and mention Question.
 
+            # Context:
+            {context}
+            
             # Question:
             {input}
             
             # Important:
+            - If you don't have any contexts, respond based on "제공된 정보가 없어 질문에 답변할 수 없습니다." with friendly answer.
             - You must use all 10 articles.
             - Include the core content of each article.
             - Write rich, detailed responses.
             - Include source references for every piece of information.
             - Use only verified information.
+            
 
             Remember: Quality comes from using all 10 sources effectively to create a comprehensive and well-supported analysis.
             I'm going to tip $200 for a perfect answer within Korean!

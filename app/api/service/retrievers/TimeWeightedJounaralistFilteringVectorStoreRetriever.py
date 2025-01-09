@@ -146,6 +146,7 @@ class TimeWeightedJounaralistFilteringVectorStoreRetriever(CustomVectorStoreRetr
                 k=self.k,
                 setting=self.search_kwargs.get('setting')
             )
+            print('name: ', name, 'docs: ', len(docs_and_scores))
             return self._get_rescored_docs(docs_and_scores)
 
         # 모든 기자에 대한 작업을 동시에 실행
