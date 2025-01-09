@@ -1398,6 +1398,7 @@ def journalist_prompt_template_id_5():
             - Write rich, detailed responses.
             - Include source references for every piece of information.
             - Use only verified information.
+            - **IMPORTANT** Format: "Sources: [393568, 159592, ...]"(without **)
             
 
             Remember: Quality comes from using all 10 sources effectively to create a comprehensive and well-supported analysis.
