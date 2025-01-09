@@ -5,9 +5,9 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.main import api_router
 from app.core.config import settings
 
-auth_header = APIKeyHeader(name="Authorization", auto_error=False)
+# auth_header = APIKeyHeader(name="Authorization", auto_error=False)
 
-app = FastAPI(dependencies=[Depends(auth_header)])
+app = FastAPI()
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
