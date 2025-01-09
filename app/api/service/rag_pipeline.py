@@ -591,7 +591,7 @@ class RagPipeline:
 
     def _init_question_answer_chain(self):
         # prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template())
-        prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template_id())
+        prompt = ChatPromptTemplate.from_messages(prompts.custom_prompt_template_id_2())
         question_answer_chain = create_stuff_documents_chain(self.llm, prompt)
         return question_answer_chain
 
