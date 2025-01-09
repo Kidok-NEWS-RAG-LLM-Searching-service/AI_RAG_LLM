@@ -8,6 +8,7 @@ attrs==24.2.0
 beautifulsoup4==4.12.3
 boto3==1.35.81
 botocore==1.35.81
+cachetools==5.5.0
 certifi==2024.8.30
 charset-normalizer==3.4.0
 click==8.1.7
@@ -24,8 +25,12 @@ frozenlist==1.5.0
 fsspec==2024.10.0
 git-filter-repo==2.47.0
 google==3.0.0
+google-api-core==2.24.0
+google-auth==2.37.0
+google-cloud-speech==2.30.0
 googleapis-common-protos==1.66.0
-grpcio==1.68.1
+grpcio==1.69.0
+grpcio-status==1.69.0
 h11==0.14.0
 httpcore==1.0.7
 httpx==0.28.0
@@ -69,11 +74,14 @@ pinecone-plugin-interface==0.0.7
 pinecone-text==0.9.0
 prompt_toolkit==3.0.48
 propcache==0.2.1
-protobuf==4.25.5
+proto-plus==1.25.0
+protobuf==5.29.3
 protoc-gen-openapiv2==0.0.1
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pyarrow==18.1.0
+pyasn1==0.6.1
+pyasn1_modules==0.4.1
 pydantic==2.10.0
 pydantic_core==2.27.0
 Pygments==2.18.0
@@ -86,6 +94,7 @@ PyYAML==6.0.2
 regex==2024.11.6
 requests==2.32.3
 requests-toolbelt==1.0.0
+rsa==4.9
 s3transfer==0.10.4
 scikit-learn==1.6.0
 scipy==1.15.0
@@ -109,6 +118,7 @@ upstage==0.1
 urllib3==2.2.3
 uvicorn==0.32.1
 wcwidth==0.2.13
+websockets==14.1
 wget==3.2
 widgetsnbextension==4.0.13
 yarl==1.18.3
