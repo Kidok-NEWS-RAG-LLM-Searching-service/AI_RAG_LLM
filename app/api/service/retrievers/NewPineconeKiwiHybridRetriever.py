@@ -331,7 +331,7 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
             partial(self.index.query, **query_params)
         )
 
-        print('_aget_relevant_documents 중 search_kwargs: ', search_kwargs)
+        # print('_aget_relevant_documents 중 search_kwargs: ', search_kwargs)
         # 쿼리 응답 처리
         documents = self._process_query_response(query_response, search_kwargs)
 
