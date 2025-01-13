@@ -8,6 +8,8 @@ import asyncio
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
+from datetime import datetime
+
 
 class NewPineconeKiwiHybridRetriever(BaseRetriever):
     """
@@ -120,6 +122,7 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
         query_response = self.index.query(**query_params)
         # print("namespace", self.namespace)
 
+        
         documents = self._process_query_response(query_response)
 
         # Rerank 옵션이 있는 경우 rerank 수행
@@ -209,7 +212,7 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
 
         return query_params
 
-    def _process_query_response(self, query_response: Dict[str, Any]) -> List[Document]:
+    def _process_query_response(self, query_response: Dict[str, Any], search_kwargs: Dict) -> List[Document]:
         """
         쿼리 응답을 처리하는 메서드입니다.
 
@@ -219,6 +222,16 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
         Returns:
             List[Document]: 처리된 문서 리스트
         """
+        print(search_kwargs['search_kwargs'].get('decay_rate'))
+        if "search_kwargs" in search_kwargs:
+            if search_kwargs['search_kwargs'].get('decay_rate') is not None:
+                print('time_weighted')
+                list =  [
+                (Document(id=r.metadata["id"], page_content='id: '+r.metadata["id"][:-2]+' | '+ r.metadata["content"], metadata=r.metadata), r["score"])
+                for r in query_response["matches"]
+                ]
+                return self._get_rescored_docs(list, k=20, decay_rate=search_kwargs['search_kwargs'].get('decay_rate'))
+        
         return [
             Document(id=r.metadata["id"], page_content='id: '+r.metadata["id"][:-2]+' | '+ r.metadata["content"], metadata=r.metadata)
             for r in query_response["matches"]
@@ -279,38 +292,6 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
     #         filter=filter_dict  # filter를 직접 전달
     #     )
     
-    async def asimilarity_search(
-        self, 
-        query: str, 
-        k: int = None, 
-        filter: Optional[dict] = None,
-        **kwargs
-    ) -> List[Document]:
-        """
-        주어진 쿼리에 대해 유사한 문서를 비동기적으로 검색하는 메서드입니다.
-
-        Args:
-            query (str): 검색 쿼리
-            k (int, optional): 반환할 문서 수
-            filter (dict, optional): 검색 필터
-            **kwargs: 추가 검색 매개변수
-
-        Returns:
-            List[Document]: 검색된 문서 리스트
-        """
-        search_kwargs = {"search_kwargs": {}}
-        
-        if k is not None:
-            search_kwargs["search_kwargs"]["top_k"] = k
-        if filter is not None:
-            search_kwargs["search_kwargs"]["filter"] = filter
-        
-        return await self._aget_relevant_documents(
-            query,
-            run_manager=CallbackManagerForRetrieverRun.get_noop_manager(),
-            **search_kwargs
-        )
-        
     async def _aget_relevant_documents(
         self,
         query: str,
@@ -350,8 +331,9 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
             partial(self.index.query, **query_params)
         )
 
+        print('_aget_relevant_documents 중 search_kwargs: ', search_kwargs)
         # 쿼리 응답 처리
-        documents = self._process_query_response(query_response)
+        documents = self._process_query_response(query_response, search_kwargs)
 
         # Rerank 옵션이 있는 경우 rerank 수행
         if (
@@ -440,10 +422,48 @@ class NewPineconeKiwiHybridRetriever(BaseRetriever):
             search_kwargs["search_kwargs"]["top_k"] = k
         if filter is not None:
             search_kwargs["search_kwargs"]["filter"] = filter
-        
+        if kwargs.get('decay_rate') is not None:
+            search_kwargs["search_kwargs"]["decay_rate"] = kwargs.get('decay_rate')
+        if kwargs.get('abc') is not None:
+            search_kwargs["search_kwargs"]["abc"] = kwargs.get('abc')
+            
+            
         return await self._aget_relevant_documents(
             query,
             run_manager=CallbackManagerForRetrieverRun.get_noop_manager(),
             **search_kwargs
         )
+        
+    
+    def _document_get_datetime(self, document: Document, field: str) -> datetime:
+        """Convert metadata field to datetime."""
+        if field in document.metadata:
+            return datetime.strptime(document.metadata[field], "%Y-%m-%d")
+        return datetime.now()
+
+    def _get_combined_score(
+            self,
+            vector_relevance: float,
+            document: Document,
+            current_time: datetime,
+            decay_rate
+    ) -> float:
+        """Calculate combined score (vector relevance + time score)."""
+        init_date = self._document_get_datetime(document, "init_date")
+        hours_passed = (current_time - init_date).total_seconds() / 3600
+        time_score = (1.0 - decay_rate) ** hours_passed
+        return vector_relevance + time_score
+
+    def _get_rescored_docs(self, docs_and_scores: List[Tuple[Document, float]], k: int, decay_rate) -> List[Document]:
+        """Rescore and sort the documents based on combined scores."""
+        current_time = datetime.now()
+        print('start rescored_docs_in code')
+        rescored_docs = [
+            (doc, self._get_combined_score(score, doc, current_time, decay_rate))
+            for doc, score in docs_and_scores
+        ]
+        rescored_docs.sort(key=lambda x: x[1], reverse=True)
+        # return [(score, doc) for doc, score in rescored_docs[:self.k]]
+        return [doc for doc, _ in rescored_docs[:k]]
+
 

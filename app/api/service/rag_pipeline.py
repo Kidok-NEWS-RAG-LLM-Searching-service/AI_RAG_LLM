@@ -132,7 +132,7 @@ class RagPipeline:
         tokenizer="kiwi",
         embeddings=self.embeddings,
         top_k=20,
-        alpha=.5,
+        alpha=.55,
         )
         
         # 필수 파라미터들이 있는지 확인
@@ -171,7 +171,10 @@ class RagPipeline:
             search_kwargs={
                 'search_type': 'similarity_score_threshold',
                 'score_threshold': 0.319,  # 0과 1 사이의 값 설정
-                'filter': {'section': {'$nin': ['기독AD']}},
+                'filter': {
+                    'section': {'$nin': ['기독AD']},
+                    'init_year': {'$gte': datetime.now().year-2}
+                    },
                 'setting': 'time_weighted'
             }
         )
@@ -606,7 +609,11 @@ class RagPipeline:
             filter={
                     'section': {'$nin': ['기독AD']}, 
                     'init_year': {'$gte': datetime.now().year-2}
-            }
+            },
+            decay_rate=0.001,  # 0.000_000_1
+            # search_type= 'similarity_score_threshold',
+            # score_threshold= 0.319,  # 0과 1 사이의 값 설정
+            # setting= 'time_weighted'
         )
         document_end_time = time.time()
             # 검색된 문서로 chain 실행
@@ -841,7 +848,6 @@ class RagPipeline:
                 "date_list": date_list,
                 "date_range": sessions,
             }
-
             return await self.date_filter_LLM(query, date_cal), intent
 
         elif "Date" in intent:
@@ -874,6 +880,7 @@ class RagPipeline:
                 return await self.hybird_dense_sparse_LLM(query), intent
             print(f'Journalist name list: {name_list}')
             return await self.journalist_filter_LLM(query, name_list), intent
+
 
     async def is_cache_hit(self, query, data):
         from sklearn.metrics.pairwise import cosine_similarity
