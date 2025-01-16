@@ -101,7 +101,8 @@ async def get_query_result(request: QueryRequest):
     try:
         start_log_time = time.time()
         # print('start caching')
-        cache_data = await cache_repository.get_today_cache_data()
+        # cache_data = await cache_repository.get_today_cache_data()
+        cache_data = await cache_repository.get_last_hour_cache_data()        
         cache_information = await rag_pipeline.is_cache_hit(request.query, cache_data)
         # print(cache_information.get("hit_check"))
         if cache_information.get("hit_check"):

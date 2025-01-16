@@ -70,5 +70,22 @@ class CacheRepository:
         # print(len(data))
         return data
 
+    async def get_last_hour_cache_data(self):
+        # 현재 UTC 시간
+        now = datetime.now(timezone.utc)
+        
+        # 직전 한 시간의 시작과 끝 타임스탬프 계산
+        one_hour_ago = now - timedelta(hours=1)
+        start_timestamp = int(one_hour_ago.timestamp())
+        end_timestamp = int(now.timestamp())
+
+        # MongoDB에서 직전 한 시간의 데이터를 가져오기
+        data = await self.__cache["ai_response_cache_store"].find({
+            "timestamp": {"$gt": start_timestamp, "$lt": end_timestamp}
+        }).to_list(length=None)
+
+        # print(len(data))
+        return data
+
 
 cache_repository = CacheRepository(mongodb.get_cache())
