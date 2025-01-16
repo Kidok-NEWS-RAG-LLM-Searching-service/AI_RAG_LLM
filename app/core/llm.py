@@ -2,7 +2,7 @@ from langchain_openai import ChatOpenAI
 from langchain_upstage import UpstageEmbeddings
 from app.core.config import settings
 from openai import OpenAI, AsyncOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 
