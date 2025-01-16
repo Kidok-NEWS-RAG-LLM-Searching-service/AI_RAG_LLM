@@ -2,11 +2,12 @@ from langchain_openai import ChatOpenAI
 from langchain_upstage import UpstageEmbeddings
 from app.core.config import settings
 from openai import OpenAI, AsyncOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 
 class AIModelManager:
-    DEFAULT_MAX_TOKEN = 1024
+    DEFAULT_MAX_TOKEN = 1500
     DEFAULT_EMBEDDING_MODEL = "embedding-query"
     DEFAULT_LLM_MODEL = "gpt-4o-mini-2024-07-18"
     DEFAULT_LLM_MAX_RETRIES = 3
@@ -40,6 +41,16 @@ class AIModelManager:
             max_retries=llm_max_retries,
             streaming=True
         )
+        
+    # 제미나이 속도 테스트 진짜 심할때는 거의 절반 수준.
+    # def _init_llm(self, llm_temperature: float, llm_max_tokens: int, llm_time_out: int, llm_max_retries: int):
+    #     return ChatGoogleGenerativeAI(
+    #         model="gemini-1.5-flash",
+    #         temperature=llm_temperature,
+    #         max_tokens=llm_max_tokens,
+    #         google_api_key=settings.Y_GEMINI_API_KEY
+    #     )
+        
 
     @staticmethod
     def get_custom_prompt_template():

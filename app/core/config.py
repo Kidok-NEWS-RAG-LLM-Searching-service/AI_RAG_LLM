@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     mongo_db_name: str
     mongo_cache_name: str
     mongo_db_url: str
+    
+    Y_GEMINI_API_KEY: str
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs, _env_file=Path(f".env.{kwargs.get('env', 'dev')}"))

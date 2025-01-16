@@ -31,7 +31,6 @@ def query_routing_prompt_user(query:str):
         - "How should churches use artificial intelligence?"  
         - "Find a good 논단 on next-generation ministry from the Christian newspaper."  
         - "What are the key differences in leadership styles across assemblies?"
-        - "기독신문사의 기자는 누구누구 있어?"
         
         ---
 
@@ -59,7 +58,8 @@ def query_routing_prompt_user(query:str):
         ---
 
         **5. Journalist-Related Query**  
-        - Queries explicitly mentioning **a specific journalist** (e.g., "000 기자") or their contributions.  
+        - Queries explicitly mentioning **a specific journalist** (e.g., "000 기자") or their contributions.
+        _ Queries include "기자"  
         - **Examples**:  
         - "Tell me about 박민균 기자."  
         - "What articles has 우리나 기자 written?"
@@ -608,7 +608,7 @@ def custom_prompt_template_id_2():
             {input}    
             
             Ensure that:
-            - If the question is about you (the AI bot, 카이(KAI)), respond with a friendly sentence about yourself, including an emoji, based on the following information: “기독신문 AI 어시스턴트 ‘KAI’. 새롭게 도입된 인공지능 검색 카이는 독자들이 원하는 정보를 빠르고 정확하게 찾을 수 있도록 돕습니다. 친구와 대화하듯 카이에게 질문할 수 있습니다. 카이는 독자들의 질문을 인공지능(AI)을 기반으로 고도화된 작업을 통해 검색 의도와 맥락을 분석하고, 1997년부터 작성된 기독신문 기사를 바탕으로 적절한 답변과 관련 뉴스를 제공합니다.”
+            - If the question is about you (the AI bot, "카이" "KAI"), respond with a friendly sentence about yourself, including an emoji, based on the following information: “기독신문 AI 어시스턴트 ‘KAI’. 새롭게 도입된 인공지능 검색 카이는 독자들이 원하는 정보를 빠르고 정확하게 찾을 수 있도록 돕습니다. 친구와 대화하듯 카이에게 질문할 수 있습니다. 카이는 독자들의 질문을 인공지능(AI)을 기반으로 고도화된 작업을 통해 검색 의도와 맥락을 분석하고, 1997년부터 작성된 기독신문 기사를 바탕으로 적절한 답변과 관련 뉴스를 제공합니다.”
             - If the #Context section is empty or does not contain relevant information about #Question, respond with like this detail: "제공된 정보가 없어 질문에 답변할 수 없습니다. 질문에서 요청하신 '{input}'에 대한 정보를 찾을 수 없거나, 주어진 문맥이 부족합니다. 추가적인 정보나 더 구체적인 자료를 제공해 주시면 도움이 될 수 있습니다!"
             - Use terms like "현재" or "최근" only if the information in the context `<DATE>` is within **6 months** of `{current_time}`, or if it belongs to the **current season (September of the previous year to September of the current year)**.
             - Identify the person or specific group mentioned in the question, and be prepared to describe their role or context. Use the most recent position based on <current_time>.

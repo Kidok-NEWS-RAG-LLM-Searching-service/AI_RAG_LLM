@@ -381,18 +381,23 @@ class RagPipeline:
 
     def session_to_date_list(self, sessions):
         date_list = []
-        for session in sessions:
-            start_date = datetime.strptime(self.session_period[session - 1]["start_date"], "%Y-%m-%d")
-            end_date = datetime.strptime(self.session_period[session - 1]["end_date"], "%Y-%m-%d")
+        try: 
+            for session in sessions:
+                start_date = datetime.strptime(self.session_period[session - 1]["start_date"], "%Y-%m-%d")
+                end_date = datetime.strptime(self.session_period[session - 1]["end_date"], "%Y-%m-%d")
 
-            print(f"['start date': '{start_date}', 'end date': '{end_date}']")
+                print(f"['start date': '{start_date}', 'end date': '{end_date}']")
 
-            current_date = start_date
-            while current_date <= end_date:
-                date_list.append(current_date.strftime("%Y-%m-%d"))
-                current_date += timedelta(days=1)
+                current_date = start_date
+                while current_date <= end_date:
+                    date_list.append(current_date.strftime("%Y-%m-%d"))
+                    current_date += timedelta(days=1)
 
-        return date_list
+            return date_list
+        except Exception as e:
+            print('error at session_to_date_list: ', e)
+            print('ERROR sessions: ', sessions)
+            return []
 
     async def extract_session_numbers(self, query: str) -> list:
         """
