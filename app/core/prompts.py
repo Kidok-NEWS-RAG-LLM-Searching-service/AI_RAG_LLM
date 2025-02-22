@@ -535,6 +535,7 @@ def custom_prompt_template_id_2():
                - Provide examples, key facts, or specific data from the context when relevant to the question.
                - Reference sources using their actual document IDs in square brackets immediately after each supporting statement (e.g., [12345][67890]).
                - Include up to 10 unique document IDs in total, prioritizing the most relevant sources for the question.
+               - 인물의 직책(예: 목사, 대표이사, 장로 등)을 반드시 구분하고, 해당 직책(목사, 대표이사, 장로, 총회장 등)의 정보만을 사용하여 답변을 작성하세요.
 
             4. **Sources and References**:
                - Every referenced source must be explicitly used in the main answer text.
