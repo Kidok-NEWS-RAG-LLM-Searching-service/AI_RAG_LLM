@@ -12,6 +12,7 @@ class MongoDB:
         self.client = AsyncIOMotorClient(settings.mongo_db_url,tlsCAFile=certifi.where())
         self.db = self.client[settings.mongo_db_name]
         self.cache = self.client[settings.mongo_cache_name]
+        self.dashboard_db = self.client[settings.mongo_dashboard_db_name]
 
     def close(self):
         self.client.close()
@@ -21,6 +22,9 @@ class MongoDB:
 
     def get_cache(self):
         return self.cache
+
+    def get_dashboard_db(self):
+        return self.dashboard_db
 
 
 mongodb = MongoDB()

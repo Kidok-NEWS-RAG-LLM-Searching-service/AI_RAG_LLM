@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     mongo_db_name: str
     mongo_cache_name: str
+    mongo_dashboard_db_name: str
     mongo_db_url: str
     
     Y_GEMINI_API_KEY: str
