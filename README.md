@@ -4,7 +4,8 @@ A Retrieval-Augmented Generation (RAG) based intelligent QA system designed to s
 
 
 ## Features
-- Vector-based retrieval using PineconeDB
-- Context-aware answer generation via OpenAI LLM
-- Modular architecture (embedding / retrieval / generation)
-- Containerized with Docker for easy deployment
+- Integrated OpenAI ChatCompletion + LangChain + Pinecone for hybrid retrieval
+- Developed prompt-based routing system for dynamic QA flows
+- Implemented multiple retrievers (dense-sparse hybrid, time-based, journalist-specific)
+- Constructed rich metadata-aware citation system (source formatting, hallucination filtering)
+- Used async/await patterns for fast, non-blocking LLM queries
