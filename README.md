@@ -1,6 +1,6 @@
 ## AI_RAG_LLM: LLM 기반 뉴스 검색 서비스
 
-A Retrieval-Augmented Generation (RAG) based intelligent QA system designed to search and answer questions from news content using Large Language Models. Built for the Kidok News service.
+Built a production-grade Retrieval-Augmented Generation (RAG) system for domain-specific QA over news content.
 
 
 ## Features
