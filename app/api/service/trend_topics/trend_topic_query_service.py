@@ -9,7 +9,9 @@ class TrendTopicQueryService:
         self.trend_topic_repository = trend_topic_repository
 
     async def find_today_trend_topics(self):
-        today = date.today().isoformat()
+        # today = date.today().isoformat()
+        today = str(date.today())
+        print(today)
         trend_topics = await self.trend_topic_repository.find_today_trend_topics(today_date=today)
         return trend_topics
 

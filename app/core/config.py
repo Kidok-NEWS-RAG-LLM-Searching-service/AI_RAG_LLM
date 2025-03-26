@@ -1,6 +1,8 @@
 from pathlib import Path
+import os 
 
 from pydantic.v1 import BaseSettings
+
 
 
 class Settings(BaseSettings):
@@ -27,7 +29,8 @@ class Settings(BaseSettings):
     Y_GEMINI_API_KEY: str
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs, _env_file=Path(f".env.{kwargs.get('env', 'dev')}"))
+        env = kwargs.get("env") or os.getenv("ENV", "dev")
+        super().__init__(**kwargs, _env_file=f".env.{env}")
 
     @property
     def all_cors_origin(self) -> list[str]:

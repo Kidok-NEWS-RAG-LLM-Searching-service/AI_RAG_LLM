@@ -14,6 +14,7 @@ class TrendTopicRepository:
             ("order", 1)
         ])
         trend_topics_in_collection = await cursor.to_list(length=None)
+        print(len(trend_topics_in_collection))
         trend_topics = []
 
         for trend_topic in trend_topics_in_collection:
