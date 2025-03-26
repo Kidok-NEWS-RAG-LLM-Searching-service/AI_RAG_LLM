@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
-from app.api.routes import health_check_controller, ai_chat_controller, tracking_controller, stt_controller
+from app.api.routes import health_check_controller, ai_chat_controller, tracking_controller, stt_controller, \
+    trend_topic_controller
 
 api_router = APIRouter()
 
@@ -8,3 +9,4 @@ api_router.include_router(health_check_controller.router, prefix="/health-check"
 api_router.include_router(ai_chat_controller.router, prefix="/ai-chat", tags=["AI Chat"])
 api_router.include_router(tracking_controller.router,prefix="/tracking", tags=["Tracking"])
 api_router.include_router(stt_controller.router, prefix="/stt", tags=["STT"])
+api_router.include_router(trend_topic_controller.router, prefix="/trend-topics", tags=["Trend Topics"])
