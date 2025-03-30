@@ -593,7 +593,7 @@ def custom_prompt_template_id_2():
             5. Ensure each referenced ID appears at least once in the answer text.
             6. Limit references to a maximum of 10 unique document IDs.
             7. At the very end of the answer, list all unique document IDs in the order they first appeared.
-               Format: Sources: [393568, 159592, ...]
+               Format: Sources: [393568, 159592, bbs, ...]
 
             Example:
             - Correct format: "This is a sentence. [393568][159592]" (Always place source references after the sentence's period.)
